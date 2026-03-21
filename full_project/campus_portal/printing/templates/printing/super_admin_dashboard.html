@@ -1,0 +1,282 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Super Admin — Campus Portal</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="page-header super">
+  <div class="container">
+    <span></span>
+    <h1>🏛️ Super Admin Control Panel</h1>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" style="background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-weight:600;">Logout</button></form>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Top stats -->
+  <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);margin-bottom:2rem;">
+    <div class="stat-card"><div class="stat-icon blue">👥</div><div><div class="stat-num">{{ total_users }}</div><div class="stat-lbl">Users</div></div></div>
+    <div class="stat-card"><div class="stat-icon indigo">🖨️</div><div><div class="stat-num">{{ total_print }}</div><div class="stat-lbl">Print Orders</div></div></div>
+    <div class="stat-card"><div class="stat-icon yellow">⏳</div><div><div class="stat-num">{{ pending_print }}</div><div class="stat-lbl">Pending Prints</div></div></div>
+    <div class="stat-card"><div class="stat-icon purple">🛒</div><div><div class="stat-num">{{ total_store }}</div><div class="stat-lbl">Store Orders</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">💰</div><div><div class="stat-num">₹{{ repro_revenue|floatformat:0 }}</div><div class="stat-lbl">Repro Revenue</div></div></div>
+  </div>
+
+  <!-- 3-section tabs: Users | Repro | Store -->
+  <input type="radio" name="super-tab" id="st-users" class="tab-radio" checked>
+  <input type="radio" name="super-tab" id="st-repro"  class="tab-radio">
+  <input type="radio" name="super-tab" id="st-store"  class="tab-radio">
+
+  <div class="tab-bar">
+    <label for="st-users" class="tab-label" style="flex:1;">👥 Manage Users</label>
+    <label for="st-repro"  class="tab-label" style="flex:1;">🖨️ Repro</label>
+    <label for="st-store"  class="tab-label" style="flex:1;">🛒 Store</label>
+  </div>
+
+  <style>
+    #st-users:checked ~ .tab-bar label[for="st-users"],
+    #st-repro:checked  ~ .tab-bar label[for="st-repro"],
+    #st-store:checked  ~ .tab-bar label[for="st-store"] {
+      background: linear-gradient(135deg,#0f172a,#1e3a8a); color: white;
+    }
+    #st-users:checked ~ .sc-users { display: block; }
+    #st-repro:checked  ~ .sc-repro  { display: block; }
+    #st-store:checked  ~ .sc-store  { display: block; }
+    .sc-users, .sc-repro, .sc-store { display: none; }
+  </style>
+
+  <!-- ── USERS TAB ─────────────────────────────────────── -->
+  <div class="sc-users">
+
+    <!-- Create user form -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header" style="background:linear-gradient(135deg,#f0f9ff,#e0e7ff);">
+        <h3>➕ Create New User</h3>
+      </div>
+      <div class="card-body">
+        <form method="post" action="{% url 'create_user' %}">
+          {% csrf_token %}
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:0.75rem;align-items:end;">
+            <div>
+              <label class="form-label">Username</label>
+              <input type="text" name="username" class="form-input" placeholder="username" required>
+            </div>
+            <div>
+              <label class="form-label">Email</label>
+              <input type="email" name="email" class="form-input" placeholder="user@email.com" required>
+            </div>
+            <div>
+              <label class="form-label">Password</label>
+              <input type="password" name="password" class="form-input" placeholder="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Users table -->
+    <div class="card">
+      <div class="card-header"><h3>All Users ({{ total_users }})</h3></div>
+      <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th><th>Username</th><th>Email</th><th>Role</th>
+            <th>Change Role</th><th>Edit Email</th><th>Reset Password</th><th>Delete</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr>
+            <td style="color:var(--gray-500);">#{{ u.id }}</td>
+            <td><strong>{{ u.username }}</strong></td>
+            <td style="color:var(--gray-500);">{{ u.email|default:"—" }}</td>
+            <td>
+              {% if u.is_superuser %}<span class="role-badge super">Super Admin</span>
+              {% elif u.groups.first.name == "repro_admin" %}<span class="role-badge repro">Repro Admin</span>
+              {% elif u.groups.first.name == "store_admin" %}<span class="role-badge store">Store Admin</span>
+              {% else %}<span class="role-badge customer">Student</span>{% endif %}
+            </td>
+            <td>
+              {% if not u.is_superuser %}
+              <form method="post" action="{% url 'update_user_role' u.id %}" style="display:flex;gap:0.4rem;">
+                {% csrf_token %}
+                <select name="role" class="form-select" style="padding:0.35rem 0.5rem;font-size:0.8rem;">
+                  <option value="customer">Student</option>
+                  <option value="repro_admin">Repro Admin</option>
+                  <option value="store_admin">Store Admin</option>
+                </select>
+                <button type="submit" class="btn btn-ghost btn-sm">Set</button>
+              </form>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if not u.is_superuser %}
+              <form method="post" action="{% url 'update_user_email' u.id %}" style="display:flex;gap:0.4rem;">
+                {% csrf_token %}
+                <input type="email" name="email" value="{{ u.email }}" class="form-input" placeholder="email@domain.com" style="max-width:170px;padding:0.35rem 0.5rem;font-size:0.8rem;">
+                <button type="submit" class="btn btn-ghost btn-sm">💾 Save</button>
+              </form>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if not u.is_superuser %}
+              <form method="post" action="{% url 'reset_password' u.id %}" style="display:flex;gap:0.4rem;">
+                {% csrf_token %}
+                <input type="password" name="new_password" class="form-input" placeholder="New pw" style="max-width:120px;padding:0.35rem 0.5rem;font-size:0.8rem;" required>
+                <button type="submit" class="btn btn-ghost btn-sm">Reset</button>
+              </form>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              {% if not u.is_superuser %}
+              <a href="{% url 'delete_user' u.id %}" class="btn btn-danger btn-sm" onclick="return confirm('Delete {{ u.username }}?')">Delete</a>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── REPRO TAB ─────────────────────────────────────── -->
+  <div class="sc-repro">
+
+    <!-- Revenue stats -->
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.5rem;">
+      <div class="stat-card"><div class="stat-icon blue">🧾</div><div><div class="stat-num">{{ total_print }}</div><div class="stat-lbl">Total Orders</div></div></div>
+      <div class="stat-card"><div class="stat-icon yellow">⏳</div><div><div class="stat-num">{{ pending_print }}</div><div class="stat-lbl">Awaiting Print</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">💰</div><div><div class="stat-num">₹{{ repro_revenue|floatformat:0 }}</div><div class="stat-lbl">Est. Revenue</div></div></div>
+    </div>
+
+    <!-- Daily chart -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header"><h3>📊 Orders — Last 7 Days</h3></div>
+      <div class="card-body">
+        {% with max_val=1 %}
+        <div class="bar-chart">
+          {% for d in repro_daily %}
+          <div class="bar-col">
+            <div class="bar-val">{{ d.count }}</div>
+            <div class="bar" style="height:{% if d.count > 0 %}{{ d.count|add:0 }}0{% else %}4{% endif %}px;"></div>
+            <div class="bar-label">{{ d.day }}</div>
+          </div>
+          {% endfor %}
+        </div>
+        {% endwith %}
+      </div>
+    </div>
+
+    <!-- Recent repro orders -->
+    <div class="card">
+      <div class="card-header"><h3>Recent Print Orders</h3></div>
+      <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Order ID</th><th>Student</th><th>Copies</th><th>Color</th><th>Status</th><th>Date</th><th>Est. Price</th></tr></thead>
+        <tbody>
+          {% for o in repro_orders %}
+          <tr>
+            <td><strong>{{ o.order_number }}</strong></td>
+            <td>{{ o.user.username }}</td>
+            <td>{{ o.copies }}</td>
+            <td>{% if o.color_mode == 'color' %}<span class="badge badge-purple">Color</span>{% else %}<span class="badge badge-gray">B&W</span>{% endif %}</td>
+            <td>
+              {% if o.status == 'paid' %}<span class="badge badge-indigo">💳 Paid</span>
+              {% elif o.status == 'printing' %}<span class="badge badge-yellow">🖨️ Printing</span>
+              {% elif o.status == 'collected' %}<span class="badge badge-green">✅ Collected</span>{% endif %}
+            </td>
+            <td style="font-size:0.8rem;color:var(--gray-500);">{{ o.created_at|date:"d M Y" }}</td>
+            <td>₹{{ o.estimated_price }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="7" style="text-align:center;color:var(--gray-500);padding:2rem;">No orders yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── STORE TAB ─────────────────────────────────────── -->
+  <div class="sc-store">
+
+    <!-- Store stats -->
+    <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:1.5rem;">
+      <div class="stat-card"><div class="stat-icon purple">🛒</div><div><div class="stat-num">{{ total_store }}</div><div class="stat-lbl">Total Orders</div></div></div>
+      <div class="stat-card"><div class="stat-icon yellow">⏳</div><div><div class="stat-num">{{ pending_store }}</div><div class="stat-lbl">Paid — Awaiting</div></div></div>
+      <div class="stat-card"><div class="stat-icon green">💰</div><div><div class="stat-num">₹{{ store_revenue|floatformat:0 }}</div><div class="stat-lbl">Store Revenue</div></div></div>
+    </div>
+
+    <!-- Store chart -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="card-header"><h3>📊 Store Orders — Last 7 Days</h3></div>
+      <div class="card-body">
+        <div class="bar-chart">
+          {% for d in store_daily %}
+          <div class="bar-col">
+            <div class="bar-val">{{ d.count }}</div>
+            <div class="bar store-bar" style="height:{% if d.count > 0 %}{{ d.count|add:0 }}0{% else %}4{% endif %}px;"></div>
+            <div class="bar-label">{{ d.day }}</div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent store orders -->
+    <div class="card">
+      <div class="card-header"><h3>Recent Store Orders</h3></div>
+      <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Order ID</th><th>Student</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          {% for o in store_orders %}
+          <tr>
+            <td><strong>{{ o.order_number }}</strong></td>
+            <td>{{ o.user.username }}</td>
+            <td style="font-size:0.8rem;">
+              {% for item in o.items.all %}<div>{{ item.product_name }} ×{{ item.quantity }}</div>{% endfor %}
+            </td>
+            <td>₹{{ o.total_amount }}</td>
+            <td>
+              {% if o.status == 'paid' %}<span class="badge badge-indigo">💳 Paid</span>
+              {% elif o.status == 'collected' %}<span class="badge badge-green">✅ Collected</span>
+              {% elif o.status == 'cancelled' %}<span class="badge badge-red">❌ Cancelled</span>{% endif %}
+            </td>
+            <td style="font-size:0.8rem;color:var(--gray-500);">{{ o.created_at|date:"d M Y" }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="6" style="text-align:center;color:var(--gray-500);padding:2rem;">No store orders yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal</div>
+</footer>
+</body>
+</html>

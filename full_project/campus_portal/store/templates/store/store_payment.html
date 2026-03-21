@@ -1,0 +1,99 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment — Campus Portal</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="page-header store">
+  <div class="container">
+    <a href="{% url 'checkout' %}">← Back</a>
+    <h1>💳 Secure Payment</h1>
+    <span></span>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+<div class="payment-wrap">
+
+  <div class="payment-card">
+
+    <div class="payment-header" style="background:linear-gradient(135deg,#4c1d95,#7e22ce);">
+      <div class="pay-icon">🛒</div>
+      <h2>College Store Payment</h2>
+      <p>Complete your purchase securely</p>
+    </div>
+
+    <div class="payment-body">
+
+      <!-- Amount -->
+      <div class="pay-total">
+        <span class="pay-total-label">Amount to Pay</span>
+        <span class="pay-total-amount" style="color:var(--purple);">₹{{ total }}</span>
+      </div>
+
+      <!-- Dummy card fields -->
+      <div class="dummy-card-area">
+        <label>Cardholder Name</label>
+        <input type="text" value="{{ request.user.username|title }}" readonly>
+        <label>Card Number</label>
+        <input type="text" value="4242 4242 4242 4242" readonly style="letter-spacing:0.1em;font-family:monospace;">
+        <div class="dummy-card-row">
+          <div>
+            <label>Expiry</label>
+            <input type="text" value="12/28" readonly>
+          </div>
+          <div>
+            <label>CVV</label>
+            <input type="text" value="***" readonly>
+          </div>
+        </div>
+      </div>
+
+      <!-- UPI option visual -->
+      <div style="text-align:center;margin-bottom:1rem;">
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.875rem;">
+          <div style="flex:1;height:1px;background:var(--gray-200);"></div>
+          <span style="font-size:0.8rem;color:var(--gray-500);font-weight:600;">OR PAY VIA UPI</span>
+          <div style="flex:1;height:1px;background:var(--gray-200);"></div>
+        </div>
+        <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.875rem;display:flex;align-items:center;justify-content:center;gap:0.75rem;border:1.5px solid var(--gray-200);">
+          <span style="font-size:1.5rem;">📱</span>
+          <div style="text-align:left;">
+            <div style="font-weight:700;font-size:0.875rem;">campus@upi</div>
+            <div style="font-size:0.75rem;color:var(--gray-500);">Demo UPI ID — no real payment</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="payment-disclaimer">🔒 This is a demo payment — no real money is charged.</div>
+
+      <form method="post" action="{% url 'store_payment' %}">
+        {% csrf_token %}
+        <div class="pay-actions">
+          <button type="submit" name="action" value="cancel" class="btn-pay-cancel">Cancel</button>
+          <button type="submit" name="action" value="pay" class="btn-pay-confirm" style="background:var(--store-grad);">
+            ✅ Pay ₹{{ total }}
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+</div>
+</div>
+</main>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal</div>
+</footer>
+</body>
+</html>

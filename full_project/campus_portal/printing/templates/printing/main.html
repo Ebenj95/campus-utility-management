@@ -1,0 +1,76 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Portal</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="header">
+  <div class="container">
+    <div class="header-inner">
+      <div style="width:48px;"></div><!-- spacer for hamburger -->
+      <div class="logo-wrap">
+        <div class="logo-icon">🎓</div>
+        <div>
+          <div class="logo-title">Campus Portal</div>
+          <div class="logo-sub">Your one-stop campus hub</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit" class="btn-logout">Logout</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+  <div class="hero-section">
+    <img src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=1400&q=80&fit=crop" alt="Campus" class="hero-img">
+    <div class="hero-overlay">
+      <h2>Welcome, {{ request.user.username }} 👋</h2>
+      <p>Everything you need for academic success, right here.</p>
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-bottom:2rem;">
+    <h2 style="font-size:1.5rem;font-weight:800;color:var(--gray-900);">Choose a Service</h2>
+    <p style="color:var(--gray-500);margin-top:0.4rem;">Access printing services or shop at the campus store.</p>
+  </div>
+
+  <div class="service-grid">
+    <a href="{% url 'repro' %}" class="service-card repro-card">
+      <div class="service-card-inner">
+        <div class="service-card-icon">🖨️</div>
+        <h3>College Repro</h3>
+        <p>Upload and print documents with custom settings. Skip the queue.</p>
+      </div>
+    </a>
+    <a href="{% url 'store_home' %}" class="service-card store-card">
+      <div class="service-card-inner">
+        <div class="service-card-icon">🛒</div>
+        <h3>College Store</h3>
+        <p>Pens, pencils, books, calculators and more. Order and collect.</p>
+      </div>
+    </a>
+  </div>
+
+</div>
+</main>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal. All rights reserved.</div>
+</footer>
+
+</body>
+</html>

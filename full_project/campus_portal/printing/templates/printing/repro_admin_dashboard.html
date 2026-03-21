@@ -1,0 +1,136 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repro Admin — Campus Portal</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="page-header admin">
+  <div class="container">
+    <span></span>
+    <h1>🖨️ Repro Admin Dashboard</h1>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" style="background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-weight:600;">Logout</button></form>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-success">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Stats -->
+  <div class="stats-grid" style="grid-template-columns:repeat(4,1fr);">
+    <div class="stat-card">
+      <div class="stat-icon blue">🧾</div>
+      <div><div class="stat-num">{{ total }}</div><div class="stat-lbl">Total Orders</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon indigo">💳</div>
+      <div><div class="stat-num">{{ paid }}</div><div class="stat-lbl">Paid — Awaiting</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon yellow">🖨️</div>
+      <div><div class="stat-num">{{ printing }}</div><div class="stat-lbl">Printing</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green">✅</div>
+      <div><div class="stat-num">{{ collected }}</div><div class="stat-lbl">Collected</div></div>
+    </div>
+  </div>
+
+  <!-- Orders table -->
+  <div class="card">
+    <div class="card-header">
+      <h2>All Print Orders</h2>
+    </div>
+    {% if orders %}
+    <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Order ID</th>
+          <th>Student</th>
+          <th>Document</th>
+          <th>Copies</th>
+          <th>Color</th>
+          <th>Paper</th>
+          <th>Binding</th>
+          <th>Status</th>
+          <th>Download &amp; Print</th>
+          <th>Update Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td><strong style="color:var(--blue);">{{ order.order_number }}</strong><br><span style="font-size:0.75rem;color:var(--gray-500);">{{ order.created_at|date:"d M, h:i A" }}</span></td>
+          <td>{{ order.user.username }}</td>
+          <td>
+            {% if order.document %}
+            <a href="{{ order.document.url }}" target="_blank" class="btn btn-ghost btn-sm">📎 View</a>
+            {% else %}—{% endif %}
+          </td>
+          <td>{{ order.copies }}</td>
+          <td>
+            {% if order.color_mode == 'color' %}
+              <span class="badge badge-purple">Color</span>
+            {% else %}
+              <span class="badge badge-gray">B&amp;W</span>
+            {% endif %}
+          </td>
+          <td>{{ order.paper_size }}</td>
+          <td>{{ order.get_binding_display }}</td>
+          <td>
+            {% if order.status == 'paid' %}<span class="badge badge-indigo">💳 Paid</span>
+            {% elif order.status == 'printing' %}<span class="badge badge-yellow">🖨️ Printing</span>
+            {% elif order.status == 'collected' %}<span class="badge badge-green">✅ Collected</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if order.document %}
+            <a href="{% url 'download_document' order.pk %}" class="btn btn-primary btn-sm">⬇️ Download</a>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            <form method="post" action="{% url 'update_status' order.pk %}" style="display:flex;gap:0.4rem;">
+              {% csrf_token %}
+              <select name="status" class="form-select" style="padding:0.35rem 0.5rem;font-size:0.8rem;min-width:130px;">
+                <option value="paid" {% if order.status == 'paid' %}selected{% endif %}>💳 Paid</option>
+                <option value="printing" {% if order.status == 'printing' %}selected{% endif %}>🖨️ Printing</option>
+                <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>✅ Collected</option>
+              </select>
+              <button type="submit" class="btn btn-ghost btn-sm">Save</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+    <div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">No orders yet</div>
+      <div class="empty-text">Orders from students will appear here.</div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+</main>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal</div>
+</footer>
+</body>
+</html>

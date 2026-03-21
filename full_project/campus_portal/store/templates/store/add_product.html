@@ -1,0 +1,107 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Add Product — Store Admin</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="page-header admin">
+  <div class="container">
+    <a href="{% url 'store_admin_dashboard' %}">← Dashboard</a>
+    <h1>➕ Add Product</h1>
+    <span></span>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+<div style="max-width:620px;margin:0 auto;">
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-error">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <div class="card">
+    <div class="card-header" style="background:linear-gradient(135deg,#f3e8ff,#e0e7ff);">
+      <h3>New Product Details</h3>
+    </div>
+    <div class="card-body">
+      <form method="post">
+        {% csrf_token %}
+
+        <div class="form-group">
+          <label class="form-label">Product Name *</label>
+          <input type="text" name="name" class="form-input" placeholder="e.g. Casio FX-991EX Calculator" required>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Price (₹) *</label>
+            <input type="number" name="price" class="form-input" placeholder="0.00" step="0.01" min="0" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Initial Stock *</label>
+            <input type="number" name="stock" class="form-input" placeholder="0" min="0" required>
+          </div>
+        </div>
+
+        <div class="form-row-2">
+          <div class="form-group">
+            <label class="form-label">Low Stock Alert Threshold</label>
+            <input type="number" name="low_stock_threshold" class="form-input" value="5" min="1">
+            <div class="form-hint">Notify when stock falls to this level.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select name="category" class="form-select">
+              <option value="">— Select —</option>
+              {% for cat in categories %}
+              <option value="{{ cat.id }}">{{ cat.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Or Create New Category</label>
+          <input type="text" name="new_category" class="form-input" placeholder="e.g. Stationery, Electronics, Books">
+          <div class="form-hint">If filled, this overrides the category selection above.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description <span style="font-weight:400;color:var(--gray-500);">(optional)</span></label>
+          <textarea name="description" class="form-input" rows="3" placeholder="Short description of the product..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Image URL <span style="font-weight:400;color:var(--gray-500);">(optional)</span></label>
+          <input type="url" name="image_url" class="form-input" placeholder="https://...">
+          <div class="form-hint">Direct image link. Leave blank to show default icon.</div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:0.5rem;">
+          <a href="{% url 'store_admin_dashboard' %}" class="btn btn-ghost btn-lg" style="text-align:center;">Cancel</a>
+          <button type="submit" class="btn btn-store btn-lg">➕ Add Product</button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>
+</div>
+</main>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal</div>
+</footer>
+</body>
+</html>

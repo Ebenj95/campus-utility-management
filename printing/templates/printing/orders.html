@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>Repro Order History</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+    <style>
+        .orders-top-bar{background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;padding:1.1rem 0;position:sticky;top:0;z-index:200;}
+        .orders-top-bar .container{display:flex;justify-content:space-between;align-items:center;gap:0.75rem;}
+        .orders-top-bar a{color:white;text-decoration:none;font-weight:600;}
+        .orders-top-bar h1{font-size:1.25rem;font-weight:700;}
+        .order-card{background:white;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,0.07);margin-bottom:1.1rem;overflow:hidden;border-left:4px solid #6366f1;}
+        .order-head{display:flex;justify-content:space-between;align-items:center;padding:0.9rem 1.25rem;background:#fafafa;border-bottom:1px solid #f3f4f6;flex-wrap:wrap;gap:0.5rem;}
+        .order-num{font-weight:700;color:#1f2937;font-size:0.88rem;}
+        .order-date{font-size:0.73rem;color:#9ca3af;margin-top:2px;}
+        .order-details{padding:0.75rem 1.25rem;display:flex;flex-wrap:wrap;gap:0.45rem;}
+        .chip{background:#f3f4f6;border-radius:7px;padding:0.25rem 0.65rem;font-size:0.77rem;color:#374151;font-weight:500;}
+        .spill{padding:0.2rem 0.6rem;border-radius:12px;font-size:0.72rem;font-weight:700;}
+        .spill-pending{background:#e0e7ff;color:#3730a3;} .spill-printing{background:#fef3c7;color:#92400e;} .spill-done{background:#dcfce7;color:#166534;}
+        /* Bell */
+        .notif-wrap{position:relative;display:inline-flex;align-items:center;}
+        .notif-btn{background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);color:white;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.15rem;transition:background 0.18s;position:relative;}
+        .notif-btn:hover{background:rgba(255,255,255,0.30);}
+        .notif-dot{position:absolute;top:-2px;right:-2px;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;font-size:0.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;animation:pulse-dot 2s infinite;}
+        @keyframes pulse-dot{0%,100%{transform:scale(1);}50%{transform:scale(1.2);}}
+        .notif-dropdown{position:absolute;top:calc(100% + 10px);right:0;width:310px;background:white;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:9999;display:none;overflow:hidden;border:1px solid #e5e7eb;}
+        .notif-dropdown.open{display:block;}
+        .notif-dropdown-head{padding:0.9rem 1.1rem;background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;font-weight:700;font-size:0.88rem;display:flex;justify-content:space-between;align-items:center;}
+        .notif-list{max-height:300px;overflow-y:auto;}
+        .notif-item{display:flex;gap:0.7rem;align-items:flex-start;padding:0.7rem 1rem;border-bottom:1px solid #f3f4f6;text-decoration:none;transition:background 0.15s;}
+        .notif-item:hover{background:#f5f3ff;}
+        .notif-item-icon{font-size:1.2rem;flex-shrink:0;}
+        .notif-item-body{flex:1;}
+        .notif-item-msg{font-size:0.8rem;color:#1f2937;font-weight:600;line-height:1.35;}
+        .notif-item-sub{font-size:0.7rem;color:#9ca3af;margin-top:1px;}
+        .notif-status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+        .dot-pending{background:#6366f1;}.dot-printing{background:#f59e0b;}.dot-done{background:#22c55e;}
+        .notif-empty{padding:1.5rem;text-align:center;color:#9ca3af;font-size:0.82rem;}
+    </style>
+</head>
+<body>
+
+<header class="orders-top-bar">
+    <div class="container">
+        <a href="{% url 'repro' %}">← Back to Repro</a>
+        <h1>🖨️ Repro Order History</h1>
+        <div class="notif-wrap">
+            <button class="notif-btn" id="notif-btn">🔔{% if notif_count %}<span class="notif-dot">{{ notif_count }}</span>{% endif %}</button>
+            <div class="notif-dropdown" id="notif-dropdown">
+                <div class="notif-dropdown-head">🔔 Updates <span style="opacity:0.8;font-size:0.75rem;">{{ notif_count }}</span></div>
+                <div class="notif-list">
+                    {% for n in notifications %}<a href="{{ n.url }}" class="notif-item"><span class="notif-item-icon">{{ n.icon }}</span><div class="notif-item-body"><div class="notif-item-msg">{{ n.message }}</div><div class="notif-item-sub">{{ n.order_number }}</div></div><span class="notif-status-dot dot-{{ n.status }}"></span></a>{% empty %}<div class="notif-empty">No orders yet</div>{% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- SIDEBAR -->
+<input type="checkbox" id="menu-toggle" class="menu-toggle-checkbox">
+<div class="hamburger-container">
+    <label for="menu-toggle" class="hamburger-btn"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></label>
+</div>
+<nav class="side-menu">
+    <div class="menu-header"><h3 class="menu-title">🎓 Campus Portal</h3><p style="color:rgba(255,255,255,0.85);font-size:0.82rem;margin-top:4px;">{{ user.username }}</p></div>
+    <div class="menu-nav">
+        <a href="{% url 'home' %}">🏠 Home</a>
+        <a href="{% url 'repro' %}">🖨️ Repro Services</a>
+        <a href="{% url 'store_home' %}">🛒 College Store</a>
+        <a href="{% url 'my_orders_combined' %}">📦 My Orders</a>
+        <a href="{% url 'about' %}">ℹ️ About</a>
+        <div style="padding:1rem 1.25rem;border-top:1px solid #f3f4f6;margin-top:0.5rem;">
+            <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+                <button type="submit" style="width:100%;padding:0.65rem;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;">🚪 Logout</button>
+            </form>
+        </div>
+    </div>
+</nav>
+<label for="menu-toggle" class="menu-overlay"></label>
+
+<main class="page-content">
+<div class="container">
+    {% if orders %}
+        {% for o in orders %}
+        <div class="order-card">
+            <div class="order-head">
+                <div><div class="order-num">{{ o.order_number }}</div><div class="order-date">{{ o.created_at|date:"d M Y, h:i A" }}</div></div>
+                <span class="spill spill-{{ o.status }}">{% if o.status == 'pending' %}⏳ Pending{% elif o.status == 'printing' %}🖨️ Printing{% elif o.status == 'done' %}✅ Done{% endif %}</span>
+            </div>
+            <div class="order-details">
+                <span class="chip">📄 {{ o.copies }} cop{{ o.copies|pluralize:"y,ies" }}</span>
+                <span class="chip">🎨 {{ o.get_color_mode_display }}</span>
+                <span class="chip">📐 {{ o.paper_size }}</span>
+                <span class="chip">↔ {{ o.get_print_side_display }}</span>
+                <span class="chip">🗂 {{ o.get_binding_display }}</span>
+                {% if o.document %}<a href="{{ o.document.url }}" target="_blank" class="chip" style="color:#6366f1;text-decoration:none;">📎 View file</a>{% endif %}
+            </div>
+            {% if o.instructions %}<div style="padding:0 1.25rem 0.75rem;font-size:0.8rem;color:#6b7280;">💬 {{ o.instructions }}</div>{% endif %}
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🖨️</div>
+        <div class="empty-title">No repro orders yet</div>
+        <div class="empty-text">Submit a document to get started.</div>
+        <a href="{% url 'repro' %}" class="empty-button">Go to Repro</a>
+    </div>
+    {% endif %}
+</div>
+</main>
+
+<footer class="footer"><div class="container"><p>&copy; {% now "Y" %} College Utility Portal</p></div></footer>
+<script>
+(function(){var nb=document.getElementById('notif-btn'),nd=document.getElementById('notif-dropdown');if(!nb||!nd)return;nb.addEventListener('click',function(e){e.stopPropagation();nd.classList.toggle('open');});document.addEventListener('click',function(e){if(!nd.contains(e.target)&&e.target!==nb)nd.classList.remove('open');});})();
+</script>
+</body>
+</html>

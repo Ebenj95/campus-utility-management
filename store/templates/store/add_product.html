@@ -1,0 +1,165 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Product - Store Admin</title>
+    <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+    <style>
+        .page-header { background: linear-gradient(135deg, #a855f7, #ec4899); color: white; padding: 1.25rem 0; }
+        .page-header .container { display: flex; justify-content: space-between; align-items: center; }
+        .page-header a { color: white; text-decoration: none; font-weight: 600; }
+        .page-header h1 { font-size: 1.5rem; }
+
+        .form-card {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        .form-card-header {
+            background: linear-gradient(135deg, #f3e8ff, #e0e7ff);
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .form-card-header h2 { font-weight: 700; color: #1f2937; }
+        .form-body { padding: 1.75rem; }
+        .form-group { margin-bottom: 1.25rem; }
+        .form-label { display: block; font-weight: 600; color: #374151; margin-bottom: 0.4rem; font-size: 0.9rem; }
+        .form-control {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+        }
+        .form-control:focus { outline: none; border-color: #a855f7; box-shadow: 0 0 0 3px rgba(168,85,247,0.1); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        @media (max-width: 480px) { .form-row { grid-template-columns: 1fr; } }
+        .divider { height: 1px; background: #e5e7eb; margin: 1.5rem 0; }
+        .hint { font-size: 0.78rem; color: #9ca3af; margin-top: 0.25rem; }
+        .form-actions { display: flex; gap: 1rem; margin-top: 1.5rem; }
+        .btn-save {
+            flex: 1;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .btn-save:hover { opacity: 0.9; }
+        .btn-cancel {
+            flex: 1;
+            padding: 0.875rem;
+            background: white;
+            color: #6b7280;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-weight: 600;
+            text-decoration: none;
+            text-align: center;
+        }
+        .btn-cancel:hover { border-color: #a855f7; color: #a855f7; }
+        .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 500; }
+        .alert-error { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+
+<header class="page-header">
+    <div class="container">
+        <a href="{% url 'store_admin_dashboard' %}">← Dashboard</a>
+        <h1>➕ Add Product</h1>
+        <span></span>
+    </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-error">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="form-card">
+        <div class="form-card-header">
+            <h2>New Product Details</h2>
+        </div>
+        <div class="form-body">
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label class="form-label">Product Name *</label>
+                    <input type="text" name="name" class="form-control" placeholder="e.g. Casio Scientific Calculator" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Price (₹) *</label>
+                        <input type="number" name="price" class="form-control" placeholder="0.00" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Initial Stock *</label>
+                        <input type="number" name="stock" class="form-control" placeholder="0" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-control">
+                        <option value="">— Select existing —</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Or Create New Category</label>
+                    <input type="text" name="new_category" class="form-control" placeholder="e.g. Stationery, Books, Electronics">
+                    <div class="hint">If filled, this overrides the selected category above.</div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="3" placeholder="Short description of the product..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Image URL</label>
+                    <input type="url" name="image_url" class="form-control" placeholder="https://...">
+                    <div class="hint">Optional — paste a direct image link. Leave blank for default icon.</div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'store_admin_dashboard' %}" class="btn-cancel">Cancel</a>
+                    <button type="submit" class="btn-save">➕ Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <p>&copy; {% now "Y" %} College Utility Portal. All rights reserved.</p>
+    </div>
+</footer>
+
+</body>
+</html>

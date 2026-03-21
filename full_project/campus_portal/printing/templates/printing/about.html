@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — Campus Portal</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="header">
+  <div class="container">
+    <div class="header-inner">
+      <div style="width:48px;"></div>
+      <div class="logo-wrap">
+        <div class="logo-icon">🎓</div>
+        <div>
+          <div class="logo-title">Campus Portal</div>
+          <div class="logo-sub">About</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <a href="{% url 'home' %}" class="btn-logout" style="text-decoration:none;">← Home</a>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+  <div class="about-hero">
+    <h1>About Campus Portal</h1>
+    <p>A unified digital platform built to make campus life easier — connecting students to essential services without the queues.</p>
+  </div>
+
+  <div class="about-cards">
+    <div class="about-card">
+      <div class="about-card-icon">🖨️</div>
+      <h3>Repro Services</h3>
+      <p>Upload documents, set your print preferences — color, paper size, binding — and skip the long queue at the reprography centre.</p>
+    </div>
+    <div class="about-card">
+      <div class="about-card-icon">🛒</div>
+      <h3>College Store</h3>
+      <p>Browse stationery, books, calculators and more. Add to cart, pay online, and collect at your convenience using your order ID.</p>
+    </div>
+    <div class="about-card">
+      <div class="about-card-icon">🔐</div>
+      <h3>Secure &amp; Role-Based</h3>
+      <p>All accounts are created and managed by the Super Admin. Separate dashboards for Repro Admins and Store Admins keep operations clean.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header" style="background:linear-gradient(135deg,#f0f9ff,#e0e7ff);">
+      <h3>📌 How It Works</h3>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;">
+        <div>
+          <div style="font-size:1.5rem;margin-bottom:0.5rem;">1️⃣</div>
+          <div style="font-weight:700;margin-bottom:0.25rem;">Login</div>
+          <div style="color:var(--gray-500);font-size:0.875rem;">Use the credentials provided by the Super Admin to sign in.</div>
+        </div>
+        <div>
+          <div style="font-size:1.5rem;margin-bottom:0.5rem;">2️⃣</div>
+          <div style="font-weight:700;margin-bottom:0.25rem;">Choose a Service</div>
+          <div style="color:var(--gray-500);font-size:0.875rem;">Head to Repro to submit a print job, or browse the Store for stationery.</div>
+        </div>
+        <div>
+          <div style="font-size:1.5rem;margin-bottom:0.5rem;">3️⃣</div>
+          <div style="font-weight:700;margin-bottom:0.25rem;">Pay &amp; Order</div>
+          <div style="color:var(--gray-500);font-size:0.875rem;">Complete a quick demo payment to confirm your order. Your order ID is generated instantly.</div>
+        </div>
+        <div>
+          <div style="font-size:1.5rem;margin-bottom:0.5rem;">4️⃣</div>
+          <div style="font-weight:700;margin-bottom:0.25rem;">Collect</div>
+          <div style="color:var(--gray-500);font-size:0.875rem;">Walk up to the counter, show your order ID, and collect — no waiting in line.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body" style="text-align:center;padding:2rem;">
+      <div style="font-size:2rem;margin-bottom:0.75rem;">📬</div>
+      <div style="font-weight:700;font-size:1.1rem;margin-bottom:0.5rem;">Questions or Issues?</div>
+      <div style="color:var(--gray-500);font-size:0.875rem;">Contact your campus IT admin or the front desk for account-related help.</div>
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal. All rights reserved.</div>
+</footer>
+
+</body>
+</html>

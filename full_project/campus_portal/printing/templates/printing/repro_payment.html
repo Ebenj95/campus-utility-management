@@ -1,0 +1,93 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment — Repro Order</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="page-header repro">
+  <div class="container">
+    <a href="{% url 'repro' %}">← Back</a>
+    <h1>💳 Order Payment</h1>
+    <span></span>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+<div class="payment-wrap">
+
+  <div class="payment-card">
+    <div class="payment-header">
+      <div class="pay-icon">🖨️</div>
+      <h2>Repro Order Summary</h2>
+      <p>Order ID: {{ order.order_number }}</p>
+    </div>
+
+    <div class="payment-body">
+
+      <!-- Order details -->
+      <div style="margin-bottom:1.25rem;">
+        <div class="pay-detail-row"><span class="pay-detail-label">Copies</span><span class="pay-detail-value">{{ order.copies }}</span></div>
+        <div class="pay-detail-row"><span class="pay-detail-label">Color Mode</span><span class="pay-detail-value">{{ order.get_color_mode_display }}</span></div>
+        <div class="pay-detail-row"><span class="pay-detail-label">Paper Size</span><span class="pay-detail-value">{{ order.paper_size }}</span></div>
+        <div class="pay-detail-row"><span class="pay-detail-label">Print Side</span><span class="pay-detail-value">{{ order.get_print_side_display }}</span></div>
+        <div class="pay-detail-row"><span class="pay-detail-label">Binding</span><span class="pay-detail-value">{{ order.get_binding_display }}</span></div>
+      </div>
+
+      <div class="pay-total">
+        <span class="pay-total-label">Estimated Total</span>
+        <span class="pay-total-amount">₹{{ estimated }}</span>
+      </div>
+
+      <div style="background:#fef3c7;border-radius:var(--radius-sm);padding:0.75rem 1rem;margin-bottom:1.25rem;font-size:0.8rem;color:#92400e;font-weight:500;">
+        ⚠️ This is an estimate based on ~5 pages. Final amount may differ.
+      </div>
+
+      <!-- Dummy card form -->
+      <div class="dummy-card-area">
+        <label>Card Number</label>
+        <input type="text" value="4242 4242 4242 4242" readonly style="letter-spacing:0.1em;font-family:monospace;">
+        <div class="dummy-card-row">
+          <div>
+            <label>Expiry</label>
+            <input type="text" value="12/28" readonly>
+          </div>
+          <div>
+            <label>CVV</label>
+            <input type="text" value="***" readonly>
+          </div>
+        </div>
+      </div>
+
+      <div class="payment-disclaimer">🔒 This is a demo payment — no real money is charged.</div>
+
+      <form method="post">
+        {% csrf_token %}
+        <div class="pay-actions">
+          <button type="submit" name="action" value="cancel" class="btn-pay-cancel">Cancel</button>
+          <button type="submit" name="action" value="pay" class="btn-pay-confirm">
+            ✅ Confirm &amp; Pay ₹{{ estimated }}
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+</div>
+</div>
+</main>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal</div>
+</footer>
+
+</body>
+</html>

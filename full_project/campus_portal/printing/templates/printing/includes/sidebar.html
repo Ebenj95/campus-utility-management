@@ -1,0 +1,82 @@
+{% load static %}
+<input type="checkbox" id="menu-toggle" class="menu-toggle-checkbox">
+
+<div class="hamburger-container">
+  <label for="menu-toggle" class="hamburger-btn">
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+    <span class="hamburger-line"></span>
+  </label>
+</div>
+
+<nav class="side-menu">
+  <div class="menu-header">
+    <div class="menu-user">
+      <div class="menu-avatar">{{ request.user.username|first|upper }}</div>
+      <div>
+        <div class="menu-username">{{ request.user.username }}</div>
+        <div class="menu-role">
+          {% if request.user.is_superuser %}Super Admin
+          {% elif request.user.groups.first %}{{ request.user.groups.first.name|title|cut:"_" }} Admin
+          {% else %}Student
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="menu-nav">
+
+    {% if request.user.is_superuser %}
+      <a href="{% url 'super_admin_dashboard' %}" {% if request.resolver_match.url_name == 'super_admin_dashboard' %}class="active"{% endif %}>
+        <span class="menu-icon-item">🏛️</span> Control Panel
+      </a>
+
+    {% elif request.user.groups.filter.name == 'repro_admin' or request.user.groups.all.0.name == 'repro_admin' %}
+      <a href="{% url 'repro_admin_dashboard' %}" {% if request.resolver_match.url_name == 'repro_admin_dashboard' %}class="active"{% endif %}>
+        <span class="menu-icon-item">🖨️</span> Orders Dashboard
+      </a>
+
+    {% elif request.user.groups.all.0.name == 'store_admin' %}
+      <a href="{% url 'store_admin_dashboard' %}" {% if request.resolver_match.url_name == 'store_admin_dashboard' %}class="active"{% endif %}>
+        <span class="menu-icon-item">🏪</span> Store Dashboard
+      </a>
+
+    {% else %}
+      <div class="menu-section-label">Services</div>
+      <a href="{% url 'home' %}" {% if request.resolver_match.url_name == 'home' %}class="active"{% endif %}>
+        <span class="menu-icon-item">🏠</span> Home
+      </a>
+      <a href="{% url 'repro' %}" {% if request.resolver_match.url_name == 'repro' %}class="active"{% endif %}>
+        <span class="menu-icon-item">🖨️</span> Repro Services
+      </a>
+      <a href="{% url 'store_home' %}" {% if request.resolver_match.url_name == 'store_home' %}class="active"{% endif %}>
+        <span class="menu-icon-item">🛒</span> College Store
+      </a>
+
+      <div class="menu-divider"></div>
+      <div class="menu-section-label">My Account</div>
+      <a href="{% url 'orders' %}" {% if request.resolver_match.url_name == 'orders' %}class="active"{% endif %}>
+        <span class="menu-icon-item">🖨️</span> Print Orders
+      </a>
+      <a href="{% url 'my_store_orders' %}" {% if request.resolver_match.url_name == 'my_store_orders' %}class="active"{% endif %}>
+        <span class="menu-icon-item">📦</span> Store Orders
+      </a>
+    {% endif %}
+
+    <div class="menu-divider"></div>
+    <a href="{% url 'about' %}" {% if request.resolver_match.url_name == 'about' %}class="active"{% endif %}>
+      <span class="menu-icon-item">ℹ️</span> About
+    </a>
+
+  </div>
+
+  <div class="menu-logout">
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit">🚪 Logout</button>
+    </form>
+  </div>
+</nav>
+
+<label for="menu-toggle" class="menu-overlay"></label>

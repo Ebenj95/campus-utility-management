@@ -1,0 +1,389 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders — Campus Portal</title>
+    <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+    <style>
+        .orders-page-header {
+            background: linear-gradient(135deg, #3b82f6, #6366f1);
+            color: white; padding: 1.1rem 0;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .orders-page-header .container { display:flex; justify-content:space-between; align-items:center; }
+        .orders-page-header a { color:white; text-decoration:none; font-weight:600; }
+        .orders-page-header h1 { font-size:1.3rem; font-weight:700; }
+
+        .tab-bar { display:flex; background:white; border-radius:12px; padding:0.4rem; margin-bottom:2rem; box-shadow:0 2px 8px rgba(0,0,0,0.06); gap:0.25rem; }
+        .tab-btn { flex:1; text-align:center; padding:0.75rem; border-radius:8px; cursor:pointer; font-weight:600; color:#6b7280; background:none; border:none; transition:all 0.2s; font-size:0.9rem; }
+        .tab-btn:hover { background:#eff6ff; color:#3b82f6; }
+        .tab-btn.active { background:linear-gradient(135deg,#3b82f6,#6366f1); color:white; }
+        .tab-panel { display:none; }
+        .tab-panel.active { display:block; }
+
+        /* Repro order card */
+        .repro-order-card {
+            background:white; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.07);
+            margin-bottom:1.25rem; overflow:hidden;
+            border-left:4px solid #6366f1;
+        }
+        .order-head { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.5rem; background:#fafafa; border-bottom:1px solid #f3f4f6; flex-wrap:wrap; gap:0.5rem; }
+        .order-num  { font-weight:700; color:#1f2937; font-size:0.9rem; }
+        .order-meta { font-size:0.75rem; color:#9ca3af; margin-top:2px; }
+        .order-details { padding:0.85rem 1.5rem; display:flex; flex-wrap:wrap; gap:0.5rem; }
+        .detail-chip { background:#f3f4f6; border-radius:8px; padding:0.3rem 0.7rem; font-size:0.78rem; color:#374151; font-weight:500; }
+
+        /* Store order card */
+        .store-order-card {
+            background:white; border-radius:14px; box-shadow:0 2px 8px rgba(0,0,0,0.07);
+            margin-bottom:1.25rem; overflow:hidden;
+            border-left:4px solid #a855f7;
+        }
+        .order-items-list { padding:0.75rem 1.5rem; }
+        .order-item-row { display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid #f9fafb; font-size:0.875rem; }
+        .order-item-row:last-child { border-bottom:none; }
+        .order-footer-row { display:flex; justify-content:space-between; align-items:center; padding:0.85rem 1.5rem; background:#f9fafb; border-top:1px solid #f3f4f6; }
+        .order-total { font-size:1.1rem; font-weight:700; color:#1f2937; }
+
+        .spill { padding:0.22rem 0.65rem; border-radius:12px; font-size:0.72rem; font-weight:700; white-space:nowrap; }
+        .spill-pending  { background:#e0e7ff; color:#3730a3; }
+        .spill-printing { background:#fef3c7; color:#92400e; }
+        .spill-done     { background:#dcfce7; color:#166534; }
+        .spill-ready    { background:#fef3c7; color:#92400e; }
+        .spill-completed{ background:#dcfce7; color:#166534; }
+        .spill-cancelled{ background:#fee2e2; color:#991b1b; }
+    </style>
+</head>
+<body>
+
+<header class="orders-page-header">
+    <div class="container">
+        <a href="{% url 'home' %}">← Home</a>
+        <h1>📦 My Orders</h1>
+        
+    </div>
+</header>
+
+<!-- SIDEBAR -->
+<input type="checkbox" id="menu-toggle" class="menu-toggle-checkbox">
+<div class="hamburger-container">
+    <label for="menu-toggle" class="hamburger-btn" aria-label="Open menu">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+    </label>
+</div>
+<nav class="side-menu">
+    <div class="menu-header">
+        <h3 class="menu-title">🎓 Campus Portal</h3>
+        <p style="color:rgba(255,255,255,0.85);font-size:0.82rem;margin-top:4px;">{{ user.username }}</p>
+    </div>
+    <div class="menu-nav">
+        <a href="{% url 'home' %}">🏠 Home</a>
+        <a href="{% url 'repro' %}">🖨️ Repro Services</a>
+        <a href="{% url 'store_home' %}">🛒 College Store</a>
+        <a href="{% url 'my_orders_combined' %}">📦 My Orders</a>
+        <a href="{% url 'about' %}">ℹ️ About</a>
+        <div style="padding:1rem 1.25rem;border-top:1px solid #f3f4f6;margin-top:0.5rem;">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" style="width:100%;padding:0.65rem;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;">
+                    🚪 Logout
+                </button>
+            </form>
+        </div>
+    </div>
+</nav>
+<label for="menu-toggle" class="menu-overlay"></label>
+
+<main class="page-content">
+<div class="container">
+
+    <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchTab('repro', this)">🖨️ Repro Orders</button>
+        <button class="tab-btn" onclick="switchTab('store', this)">🛒 Store Orders</button>
+    </div>
+
+    <!-- REPRO TAB -->
+    <div id="panel-repro" class="tab-panel active">
+        {% if repro_orders %}
+            {% for o in repro_orders %}
+            <div class="repro-order-card">
+                <div class="order-head">
+                    <div>
+                        <div class="order-num">{{ o.order_number }}</div>
+                        <div class="order-meta">{{ o.created_at|date:"d M Y, h:i A" }}</div>
+                    </div>
+                    <span class="spill spill-{{ o.status }}">
+                        {% if o.status == 'pending' %}⏳ Pending
+                        {% elif o.status == 'printing' %}🖨️ Printing
+                        {% elif o.status == 'done' %}✅ Done
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="order-details">
+                    <span class="detail-chip">📄 {{ o.copies }} cop{{ o.copies|pluralize:"y,ies" }}</span>
+                    <span class="detail-chip">🎨 {{ o.get_color_mode_display }}</span>
+                    <span class="detail-chip">📐 {{ o.paper_size }}</span>
+                    <span class="detail-chip">↔ {{ o.get_print_side_display }}</span>
+                    <span class="detail-chip">🗂 {{ o.get_binding_display }}</span>
+                    {% if o.document %}
+                    <a href="{{ o.document.url }}" target="_blank" class="detail-chip" style="color:#6366f1;text-decoration:none;">📎 View file</a>
+                    {% endif %}
+                </div>
+                {% if o.instructions %}
+                <div style="padding:0 1.5rem 0.85rem;font-size:0.82rem;color:#6b7280;">💬 {{ o.instructions }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🖨️</div>
+            <div class="empty-title">No repro orders yet</div>
+            <div class="empty-text">Submit a document for printing to get started.</div>
+            <a href="{% url 'repro' %}" class="empty-button">Go to Repro</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- STORE TAB -->
+    <div id="panel-store" class="tab-panel">
+        {% if store_orders %}
+            {% for order in store_orders %}
+            <div class="store-order-card" data-order-id="{{ order.id }}">
+                <div class="order-head">
+                    <div>
+                        <div class="order-num">{{ order.order_number }}</div>
+                        <div class="order-meta">{{ order.created_at|date:"d M Y, h:i A" }}</div>
+                    </div>
+                    <span class="spill spill-{{ order.status }}">
+                        {% if order.status == 'pending' %}⏳ Pending
+                        {% elif order.status == 'ready' %}📦 Ready for Pickup
+                        {% elif order.status == 'completed' %}✅ Completed
+                        {% elif order.status == 'cancelled' %}❌ Cancelled
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="order-items-list">
+                    {% for item in order.items.all %}
+                    <div class="order-item-row">
+                        <span>{{ item.product_name }} × {{ item.quantity }}</span>
+                        <span style="font-weight:600;">₹{{ item.subtotal }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="order-footer-row">
+                    <span style="font-size:0.85rem;color:#6b7280;">Total Paid</span>
+                    <span class="order-total">₹{{ order.total_amount }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🛒</div>
+            <div class="empty-title">No store orders yet</div>
+            <div class="empty-text">Head to the store and grab what you need!</div>
+            <a href="{% url 'store_home' %}" class="empty-button">Go to Store</a>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <p>&copy; {% now "Y" %} College Utility Portal. All rights reserved.</p>
+    </div>
+</footer>
+
+<script>
+function switchTab(name, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    btn.classList.add('active');
+}
+</script>
+<script>(function(){var nb=document.getElementById("notif-btn"),nd=document.getElementById("notif-dropdown");if(!nb||!nd)return;nb.addEventListener("click",function(e){e.stopPropagation();nd.style.display=nd.style.display==="block"?"none":"block";});document.addEventListener("click",function(e){if(!nd.contains(e.target)&&e.target!==nb)nd.style.display="none";});})();</script>
+<script>
+/* ── Store Live Refresh ──────────────────────────────────────────────────────
+   Polls /store/api/state/ every 4s.
+   On change: updates product cards and order status pills in-place.
+   No full page reload — zero flicker.
+────────────────────────────────────────────────────────────────────────────── */
+(function () {
+    var POLL_MS   = 4000;
+    var API_URL   = "/store/api/state/";
+    var lastHash  = null;
+    var toastTimer = null;
+
+    /* ── Toast ── */
+    function showToast(msg) {
+        var t = document.getElementById("lr-toast");
+        if (!t) {
+            t = document.createElement("div");
+            t.id = "lr-toast";
+            t.style.cssText = [
+                "position:fixed","bottom:1.5rem","left:50%",
+                "transform:translateX(-50%) translateY(80px)",
+                "background:#1f2937","color:white",
+                "padding:0.55rem 1.25rem","border-radius:24px",
+                "font-size:0.82rem","font-weight:600",
+                "box-shadow:0 4px 16px rgba(0,0,0,0.22)",
+                "z-index:9999","transition:transform 0.3s ease, opacity 0.3s ease",
+                "opacity:0","pointer-events:none"
+            ].join(";");
+            document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        clearTimeout(toastTimer);
+        // slide in
+        requestAnimationFrame(function(){
+            t.style.transform = "translateX(-50%) translateY(0)";
+            t.style.opacity   = "1";
+        });
+        toastTimer = setTimeout(function(){
+            t.style.transform = "translateX(-50%) translateY(80px)";
+            t.style.opacity   = "0";
+        }, 2800);
+    }
+
+    /* ── Update product cards ── */
+    function applyProducts(products) {
+        var changed = false;
+        products.forEach(function(p) {
+            /* find card by data-product-id attribute */
+            var card = document.querySelector('[data-product-id="' + p.id + '"]');
+            if (!card) return;
+
+            /* stock badge */
+            var badge = card.querySelector(".stock-badge");
+            if (badge) {
+                var newBadge = "";
+                if (p.stock === 0) {
+                    newBadge = '<span class="stock-badge stock-out">Out of Stock</span>';
+                } else if (p.stock <= 5) {
+                    newBadge = '<span class="stock-badge stock-low">Only ' + p.stock + ' left</span>';
+                } else {
+                    newBadge = '<span class="stock-badge stock-in">In Stock (' + p.stock + ')</span>';
+                }
+                if (badge.outerHTML !== newBadge) {
+                    badge.outerHTML = newBadge;
+                    changed = true;
+                }
+            }
+
+            /* add-to-cart button */
+            var btn = card.querySelector(".btn-cart");
+            if (btn) {
+                var addUrl = btn.dataset.addUrl || btn.getAttribute("href") || "";
+                if (p.stock === 0) {
+                    if (!btn.classList.contains("disabled")) {
+                        btn.outerHTML = '<span class="btn-cart disabled">Out of Stock</span>';
+                        changed = true;
+                    }
+                } else {
+                    if (btn.classList.contains("disabled") && addUrl) {
+                        btn.outerHTML = '<a href="' + addUrl + '" class="btn-cart">🛒 Add to Cart</a>';
+                        changed = true;
+                    }
+                }
+            }
+
+            /* price */
+            var priceEl = card.querySelector(".product-price");
+            if (priceEl) {
+                var newPrice = "₹" + parseFloat(p.price).toFixed(2).replace(/\.00$/, "");
+                if (priceEl.textContent.trim() !== newPrice) {
+                    priceEl.textContent = newPrice;
+                    changed = true;
+                }
+            }
+        });
+        return changed;
+    }
+
+    /* ── Update order status pills ── */
+    function applyOrders(orderStatuses) {
+        var changed = false;
+        var LABELS = {
+            pending:   "⏳ Pending",
+            ready:     "📦 Ready for Pickup",
+            completed: "✅ Completed",
+            cancelled: "❌ Cancelled"
+        };
+        var CLASSES = {
+            pending:   "status-pending",
+            ready:     "status-ready",
+            completed: "status-completed",
+            cancelled: "status-cancelled"
+        };
+        /* also handle spill classes (combined orders page) */
+        var SPILL_CLASSES = {
+            pending:   "spill-pending",
+            ready:     "spill-ready",
+            completed: "spill-completed",
+            cancelled: "spill-cancelled"
+        };
+        orderStatuses.forEach(function(o) {
+            /* status-pill variant (store/my_orders.html) */
+            var pill = document.querySelector('[data-order-id="' + o.id + '"] .status-pill');
+            if (pill) {
+                var wantClass = CLASSES[o.status];
+                if (!pill.classList.contains(wantClass)) {
+                    pill.className = "status-pill " + wantClass;
+                    pill.textContent = LABELS[o.status] || o.status;
+                    changed = true;
+                }
+            }
+            /* spill variant (my_orders combined) */
+            var spill = document.querySelector('[data-order-id="' + o.id + '"] .spill');
+            if (spill) {
+                var wantSpill = SPILL_CLASSES[o.status];
+                if (!spill.classList.contains(wantSpill)) {
+                    spill.className = "spill " + wantSpill;
+                    spill.textContent = LABELS[o.status] || o.status;
+                    changed = true;
+                }
+            }
+        });
+        return changed;
+    }
+
+    /* ── Poll ── */
+    function poll() {
+        fetch(API_URL, {credentials: "same-origin"})
+            .then(function(r){ return r.json(); })
+            .then(function(resp) {
+                if (lastHash === null) {
+                    lastHash = resp.hash;
+                    return;
+                }
+                if (resp.hash === lastHash) return;
+
+                lastHash = resp.hash;
+                var productChanged = applyProducts(resp.data.products || []);
+                var orderChanged   = applyOrders(resp.data.order_statuses || []);
+
+                if (productChanged || orderChanged) {
+                    showToast("🔄 Store updated");
+                }
+            })
+            .catch(function(){
+                /* silently ignore network errors — will retry next tick */
+            });
+    }
+
+    /* start polling after first tick */
+    setTimeout(function(){
+        poll();
+        setInterval(poll, POLL_MS);
+    }, 1000);
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Print Orders — Campus Portal</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="page-header repro">
+  <div class="container">
+    <a href="{% url 'home' %}">← Home</a>
+    <h1>🖨️ My Print Orders</h1>
+    <a href="{% url 'repro' %}">+ New Order</a>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-success">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  {% if orders %}
+    {% for order in orders %}
+    <div class="order-card">
+      <div class="order-head">
+        <div>
+          <div class="order-num">🖨️ {{ order.order_number }}</div>
+          <div class="order-date">{{ order.created_at|date:"d M Y, h:i A" }}</div>
+        </div>
+        <div>
+          {% if order.status == 'paid' %}
+            <span class="badge badge-indigo">⏳ Paid — Awaiting Print</span>
+          {% elif order.status == 'printing' %}
+            <span class="badge badge-yellow">🖨️ Printing</span>
+          {% elif order.status == 'collected' %}
+            <span class="badge badge-green">✅ Collected</span>
+          {% endif %}
+        </div>
+      </div>
+      <div class="order-items-list">
+        <div class="order-item-row">
+          <span>{{ order.copies }} cop{{ order.copies|pluralize:"y,ies" }} · {{ order.get_color_mode_display }} · {{ order.paper_size }} · {{ order.get_print_side_display }}</span>
+          <span style="font-weight:600;">{% if order.binding != 'none' %}{{ order.get_binding_display }}{% else %}No Binding{% endif %}</span>
+        </div>
+        {% if order.instructions %}
+        <div style="font-size:0.8rem;color:var(--gray-500);margin-top:0.25rem;">📝 {{ order.instructions }}</div>
+        {% endif %}
+      </div>
+      <div class="order-foot">
+        <span style="font-size:0.8rem;color:var(--gray-500);">Order ID for collection: <strong>{{ order.order_number }}</strong></span>
+        <span style="font-size:1.15rem;font-weight:800;">₹{{ order.estimated_price }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🖨️</div>
+    <div class="empty-title">No print orders yet</div>
+    <div class="empty-text">Submit your first print job and skip the queue.</div>
+    <a href="{% url 'repro' %}" class="btn btn-primary">New Print Order</a>
+  </div>
+  {% endif %}
+
+</div>
+</main>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal</div>
+</footer>
+</body>
+</html>

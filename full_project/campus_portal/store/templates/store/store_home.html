@@ -1,0 +1,105 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>College Store — Campus Portal</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="page-header store">
+  <div class="container">
+    <a href="{% url 'home' %}">← Home</a>
+    <h1>🛒 College Store</h1>
+    <a href="{% url 'my_store_orders' %}">📦 My Orders</a>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}success{% endif %}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Search -->
+  <form method="get" class="search-bar">
+    <input type="text" name="q" value="{{ query }}" placeholder="Search products…">
+    {% if selected_category %}<input type="hidden" name="category" value="{{ selected_category }}">{% endif %}
+    <button type="submit">🔍 Search</button>
+  </form>
+
+  <!-- Category pills -->
+  <div class="cat-pills">
+    <a href="{% url 'store_home' %}{% if query %}?q={{ query }}{% endif %}" class="cat-pill {% if not selected_category %}active{% endif %}">All</a>
+    {% for cat in categories %}
+    <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-pill {% if selected_category == cat.id|stringformat:'s' %}active{% endif %}">{{ cat.name }}</a>
+    {% endfor %}
+  </div>
+
+  <!-- Section heading -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;">
+    <h2 style="font-size:1.25rem;font-weight:800;color:var(--gray-900);">
+      {% if query %}Results for "{{ query }}"{% else %}All Products{% endif %}
+    </h2>
+    <span style="font-size:0.875rem;color:var(--gray-500);">{{ products|length }} item{{ products|length|pluralize }}</span>
+  </div>
+
+  {% if products %}
+  <div class="products-grid">
+    {% for product in products %}
+    <div class="product-card">
+      <div class="product-img">
+        {% if product.image_url %}
+          <img src="{{ product.image_url }}" alt="{{ product.name }}">
+        {% else %}📦{% endif %}
+      </div>
+      <div class="product-body">
+        {% if product.category %}<div class="product-cat">{{ product.category.name }}</div>{% endif %}
+        <div class="product-name">{{ product.name }}</div>
+        <div class="product-price">₹{{ product.price }}</div>
+        {% if product.stock == 0 %}
+          <span class="stock-pill stock-out">Out of Stock</span>
+        {% elif product.is_low_stock %}
+          <span class="stock-pill stock-low">Only {{ product.stock }} left!</span>
+        {% else %}
+          <span class="stock-pill stock-in">In Stock ({{ product.stock }})</span>
+        {% endif %}
+        {% if product.in_stock %}
+          <a href="{% url 'add_to_cart' product.id %}" class="btn-add-cart">🛒 Add to Cart</a>
+        {% else %}
+          <span class="btn-add-cart disabled">Out of Stock</span>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🔍</div>
+    <div class="empty-title">No products found</div>
+    <div class="empty-text">Try a different search or browse all categories.</div>
+    <a href="{% url 'store_home' %}" class="btn btn-store">Browse All</a>
+  </div>
+  {% endif %}
+
+</div>
+</main>
+
+<!-- Floating cart button -->
+<a href="{% url 'cart' %}" class="cart-fab">
+  🛒
+  {% if cart_count %}<span class="cart-fab-count">{{ cart_count }}</span>{% endif %}
+</a>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal</div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,221 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Store - College Utility Portal</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="page-header store-header">
+        <div class="container">
+            <div class="page-header-content">
+                <a href="{% url 'home' %}">🏠 Home</a>
+                <div class="page-logo">
+                    <div class="page-icon store-icon">🛒</div>
+                    <div>
+                        <h1 class="page-title">College Store</h1>
+                        <p class="page-subtitle">Campus Shopping</p>
+                    </div>
+                </div>
+                <a href="cart.html" class="cart-button">🛒 Cart</a>
+
+            </div>
+            
+            
+            <!-- Search Bar -->
+            <div class="search-container">
+                <div class="search-bar">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" placeholder="Search for books, stationery, merchandise..." class="search-input">
+                </div>
+                <button class="filter-button">⚙️ Filter</button>
+            </div>
+        </div>
+    </header>
+    <!-- Hamburger Menu -->
+    <input type="checkbox" id="menu-toggle">
+
+    <label for="menu-toggle" class="menu-icon">☰</label>
+
+    <nav class="side-menu">
+        <h3 class="menu-title">Menu</h3>
+        <a href="{% url 'home' %}">🏠 Home</a>
+        <a href="login.html">🔐 Login</a>
+        <a href="{% url 'repro' %}">🖨️ Repro Services</a>
+        <a href="{% url 'store_home' %}">🛒 College Store</a>
+        <a href="#">📦 Order Summary</a>
+        <a href="#">ℹ️ About</a>
+    </nav>
+
+<label for="menu-toggle" class="menu-overlay"></label>
+
+
+    <main class="page-content">
+        <div class="container">
+            <!-- Hero Banner -->
+            <div class="hero-banner store-hero">
+                <span class="badge">Student Essentials</span>
+                <h2 class="hero-title">Welcome to College Store</h2>
+                <p class="hero-description">
+                    Your one-stop shop for textbooks, stationery, college merchandise, and tech accessories. 
+                    Special discounts for students!
+                </p>
+                <div class="hero-buttons">
+                    <button class="hero-btn primary">Shop Textbooks</button>
+                    <button class="hero-btn secondary">Browse All</button>
+                </div>
+            </div>
+
+
+
+            <!-- Featured Products -->
+            <div class="products-header">
+                <h3 class="section-heading">Featured Products</h3>
+                <a href="#" class="view-all">View All →</a>
+            </div>
+            <div class="products-grid">
+                <!-- Product 1 -->
+                <div class="product-card">
+                    <div class="product-image">
+                        <span class="product-badge bestseller">Bestseller</span>
+                        <img src="https://images.unsplash.com/photo-1761546571631-a4d61b55cd2f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx0ZXh0Ym9va3MlMjBzdHVkeWluZyUyMGRlc2t8ZW58MXx8fHwxNzcwMDU1Nzk2fDA&ixlib=rb-4.1.0&q=80&w=1080" alt="Engineering Mathematics" class="product-real-image">
+                    </div>
+                    <div class="product-info">
+                        <span class="product-category">Textbook</span>
+                        <h4 class="product-name">Engineering Mathematics Vol. 1</h4>
+                        <div class="product-rating">
+                            <span class="star">⭐</span>
+                            <span class="rating-value">4.5</span>
+                            <span class="rating-count">(120)</span>
+                        </div>
+                        <div class="product-pricing">
+                            <span class="product-price">₹450</span>
+                            <span class="product-original">₹550</span>
+                        </div>
+                        <button class="add-to-cart">Add to Cart</button>
+                    </div>
+                </div>
+
+                <!-- Product 2 -->
+                <div class="product-card">
+                    <div class="product-image">
+                        <span class="product-badge popular">Popular</span>
+                        <img src="https://images.unsplash.com/photo-1757256137041-0aab889db199?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzY2llbnRpZmljJTIwY2FsY3VsYXRvciUyMGVsZWN0cm9uaWNzfGVufDF8fHx8MTc3MDA1NTc5OHww&ixlib=rb-4.1.0&q=80&w=1080" alt="Scientific Calculator" class="product-real-image">
+                    </div>
+                    <div class="product-info">
+                        <span class="product-category">Electronics</span>
+                        <h4 class="product-name">Scientific Calculator</h4>
+                        <div class="product-rating">
+                            <span class="star">⭐</span>
+                            <span class="rating-value">4.8</span>
+                            <span class="rating-count">(120)</span>
+                        </div>
+                        <div class="product-pricing">
+                            <span class="product-price">₹850</span>
+                            <span class="product-original">₹1200</span>
+                        </div>
+                        <button class="add-to-cart">Add to Cart</button>
+                    </div>
+                </div>
+
+                <!-- Product 3 -->
+                <div class="product-card">
+                    <div class="product-image">
+                        <span class="product-badge new">New</span>
+                        <img src="https://images.unsplash.com/photo-1635439714465-3ed3e6a122e3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb2xsZWdlJTIwbWVyY2hhbmRpc2UlMjBob29kaWV8ZW58MXx8fHwxNzcwMDU1Nzk3fDA&ixlib=rb-4.1.0&q=80&w=1080" alt="College Hoodie" class="product-real-image">
+                    </div>
+                    <div class="product-info">
+                        <span class="product-category">Merchandise</span>
+                        <h4 class="product-name">College Hoodie</h4>
+                        <div class="product-rating">
+                            <span class="star">⭐</span>
+                            <span class="rating-value">4.6</span>
+                            <span class="rating-count">(120)</span>
+                        </div>
+                        <div class="product-pricing">
+                            <span class="product-price">₹799</span>
+                            <span class="product-original">₹999</span>
+                        </div>
+                        <button class="add-to-cart">Add to Cart</button>
+                    </div>
+                </div>
+
+                <!-- Product 4 -->
+                <div class="product-card">
+                    <div class="product-image">
+                        <span class="product-badge sale">Sale</span>
+                        <img src="https://images.unsplash.com/photo-1586958060273-f1ddaafbd396?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGF0aW9uZXJ5JTIwbm90ZWJvb2tzJTIwcGVuc3xlbnwxfHx8fDE3NzAwNTU3OTd8MA&ixlib=rb-4.1.0&q=80&w=1080" alt="Notebook Set" class="product-real-image">
+                    </div>
+                    <div class="product-info">
+                        <span class="product-category">Stationery</span>
+                        <h4 class="product-name">Notebook Set (5 Pack)</h4>
+                        <div class="product-rating">
+                            <span class="star">⭐</span>
+                            <span class="rating-value">4.7</span>
+                            <span class="rating-count">(120)</span>
+                        </div>
+                        <div class="product-pricing">
+                            <span class="product-price">₹250</span>
+                            <span class="product-original">₹300</span>
+                        </div>
+                        <button class="add-to-cart">Add to Cart</button>
+                    </div>
+                </div>
+
+                <!-- Product 5 -->
+                <div class="product-card">
+                    <div class="product-image">
+                        <span class="product-badge deal">Deal</span>
+                        <img src="https://images.unsplash.com/photo-1551818014-7c8ace9c1b5c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1c2IlMjBmbGFzaCUyMGRyaXZlJTIwdGVjaG5vbG9neXxlbnwxfHx8fDE3NzAwMzA4NDl8MA&ixlib=rb-4.1.0&q=80&w=1080" alt="USB Flash Drive" class="product-real-image">
+                    </div>
+                    <div class="product-info">
+                        <span class="product-category">Electronics</span>
+                        <h4 class="product-name">USB Flash Drive 32GB</h4>
+                        <div class="product-rating">
+                            <span class="star">⭐</span>
+                            <span class="rating-value">4.4</span>
+                            <span class="rating-count">(120)</span>
+                        </div>
+                        <div class="product-pricing">
+                            <span class="product-price">₹399</span>
+                            <span class="product-original">₹599</span>
+                        </div>
+                        <button class="add-to-cart">Add to Cart</button>
+                    </div>
+                </div>
+
+                <!-- Product 6 -->
+                <div class="product-card">
+                    <div class="product-image">
+                        <img src="https://images.unsplash.com/photo-1586958060273-f1ddaafbd396?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGF0aW9uZXJ5JTIwbm90ZWJvb2tzJTIwcGVuc3xlbnwxfHx8fDE3NzAwNTU3OTd8MA&ixlib=rb-4.1.0&q=80&w=1080" alt="Geometry Box" class="product-real-image">
+                    </div>
+                    <div class="product-info">
+                        <span class="product-category">Stationery</span>
+                        <h4 class="product-name">Geometry Box Premium</h4>
+                        <div class="product-rating">
+                            <span class="star">⭐</span>
+                            <span class="rating-value">4.3</span>
+                            <span class="rating-count">(120)</span>
+                        </div>
+                        <div class="product-pricing">
+                            <span class="product-price">₹180</span>
+                            <span class="product-original">₹250</span>
+                        </div>
+                        <button class="add-to-cart">Add to Cart</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 College Utility Portal. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+</html>

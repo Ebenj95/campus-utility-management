@@ -1,0 +1,483 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Store Admin Dashboard</title>
+    <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+    <style>
+        .page-header { background:linear-gradient(135deg,#a855f7,#ec4899); color:white; padding:1.25rem 0; }
+        .page-header .container { display:flex; justify-content:space-between; align-items:center; }
+        .page-header a { color:white; text-decoration:none; font-weight:600; }
+        .page-header h1 { font-size:1.5rem; }
+
+        .tab-bar { display:flex; background:white; border-radius:12px; padding:0.4rem; margin-bottom:2rem; box-shadow:0 2px 8px rgba(0,0,0,0.06); gap:0.25rem; }
+        .tab-input { display:none; }
+        .tab-label { flex:1; text-align:center; padding:0.75rem; border-radius:8px; cursor:pointer; font-weight:600; color:#6b7280; transition:all 0.2s; }
+        .tab-label:hover { background:#f3e8ff; color:#a855f7; }
+        #tab-products:checked ~ .tab-bar .label-products,
+        #tab-orders:checked ~ .tab-bar .label-orders,
+        #tab-categories:checked ~ .tab-bar .label-categories,
+        #tab-pending:checked ~ .tab-bar .label-pending {
+            background:linear-gradient(135deg,#a855f7,#ec4899); color:white;
+        }
+        .tab-content { display:none; }
+        #tab-products:checked ~ .content-products { display:block; }
+        #tab-orders:checked ~ .content-orders { display:block; }
+        #tab-categories:checked ~ .content-categories { display:block; }
+        #tab-pending:checked ~ .content-pending { display:block; }
+
+        .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:1rem; margin-bottom:2rem; }
+        @media (max-width:768px) { .stats-grid { grid-template-columns:repeat(2,1fr); } }
+        .stat-box { background:white; border-radius:12px; padding:1.25rem; text-align:center; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+        .stat-box .num { font-size:2rem; font-weight:700; color:#1f2937; }
+        .stat-box .lbl { font-size:0.8rem; color:#9ca3af; font-weight:500; margin-top:0.25rem; }
+        .stat-box.purple .num { color:#a855f7; }
+        .stat-box.red .num { color:#ef4444; }
+        .stat-box.green .num { color:#22c55e; }
+        .stat-box.orange .num { color:#f59e0b; }
+
+        .section-card { background:white; border-radius:14px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.08); margin-bottom:2rem; }
+        .section-card-header { display:flex; justify-content:space-between; align-items:center; padding:1.25rem 1.5rem; background:linear-gradient(135deg,#f3e8ff,#e0e7ff); border-bottom:1px solid #e5e7eb; }
+        .section-card-header h2 { font-size:1.1rem; font-weight:700; color:#1f2937; }
+        .btn-add { padding:0.5rem 1.25rem; background:linear-gradient(135deg,#a855f7,#ec4899); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:600; text-decoration:none; font-size:0.875rem; transition:opacity 0.2s; }
+        .btn-add:hover { opacity:0.9; }
+
+        table { width:100%; border-collapse:collapse; }
+        th { padding:0.875rem 1.25rem; text-align:left; font-size:0.8rem; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:0.05em; border-bottom:1px solid #e5e7eb; }
+        td { padding:1rem 1.25rem; border-bottom:1px solid #f3f4f6; font-size:0.9rem; vertical-align:middle; }
+        tr:last-child td { border-bottom:none; }
+        tr:hover td { background:#fdf4ff; }
+
+        .stock-form { display:flex; gap:0.5rem; align-items:center; }
+        .stock-input { width:80px; padding:0.4rem 0.6rem; border:1px solid #e5e7eb; border-radius:6px; font-size:0.875rem; text-align:center; }
+        .stock-input:focus { outline:none; border-color:#a855f7; }
+        .btn-sm { padding:0.4rem 0.75rem; border-radius:6px; font-size:0.8rem; font-weight:600; cursor:pointer; border:none; transition:opacity 0.15s; }
+        .btn-sm:hover { opacity:0.85; }
+        .btn-edit { background:#e0e7ff; color:#3730a3; text-decoration:none; display:inline-block; }
+        .btn-del  { background:#fee2e2; color:#991b1b; }
+        .btn-stock-update { background:linear-gradient(135deg,#a855f7,#ec4899); color:white; }
+
+        .stock-tag { display:inline-block; padding:0.25rem 0.6rem; border-radius:12px; font-size:0.75rem; font-weight:600; }
+        .stock-ok   { background:#dcfce7; color:#166534; }
+        .stock-low  { background:#fef3c7; color:#92400e; }
+        .stock-zero { background:#fee2e2; color:#991b1b; }
+
+        .order-status-form { display:flex; gap:0.5rem; align-items:center; }
+        .status-select { padding:0.375rem 0.625rem; border:1px solid #e5e7eb; border-radius:6px; font-size:0.8rem; }
+        .status-select:focus { outline:none; border-color:#a855f7; }
+
+        .status-pill { padding:0.25rem 0.6rem; border-radius:12px; font-size:0.75rem; font-weight:600; }
+        .pill-pending   { background:#e0e7ff; color:#3730a3; }
+        .pill-ready     { background:#fef3c7; color:#92400e; }
+        .pill-completed { background:#dcfce7; color:#166534; }
+        .pill-cancelled { background:#fee2e2; color:#991b1b; }
+
+        .alert { padding:0.75rem 1rem; border-radius:8px; margin-bottom:1rem; font-weight:500; }
+        .alert-success { background:#dcfce7; color:#166534; }
+        .alert-error   { background:#fee2e2; color:#991b1b; }
+
+        /* Categories tab */
+        .categories-list { padding:1.25rem 1.5rem; }
+        .category-row { display:flex; align-items:center; justify-content:space-between; padding:0.75rem 1rem; border:1px solid #e5e7eb; border-radius:8px; margin-bottom:0.5rem; background:#fafafa; }
+        .category-row:last-child { margin-bottom:0; }
+        .category-name { font-weight:600; color:#1f2937; font-size:0.95rem; word-break:break-all; }
+        .category-meta { font-size:0.78rem; color:#9ca3af; margin-top:0.15rem; }
+    
+        /* ── Admin Bell ── */
+        .admin-notif-wrap{position:relative;display:inline-flex;align-items:center;}
+        .admin-notif-btn{background:rgba(255,255,255,0.2);border:1.5px solid rgba(255,255,255,0.5);color:white;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.15rem;position:relative;transition:background 0.18s;}
+        .admin-notif-btn:hover{background:rgba(255,255,255,0.35);}
+        .admin-notif-dot{position:absolute;top:-2px;right:-2px;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;font-size:0.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;animation:pulse-dot 2s infinite;}
+        @keyframes pulse-dot{0%,100%{transform:scale(1);}50%{transform:scale(1.2);}}
+        .admin-notif-dropdown{position:absolute;top:calc(100% + 10px);right:0;width:310px;background:white;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:9999;display:none;overflow:hidden;border:1px solid #e5e7eb;}
+        .admin-notif-dropdown.open{display:block;}
+        .and-head{padding:0.9rem 1.1rem;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;font-weight:700;font-size:0.88rem;display:flex;justify-content:space-between;}
+        .and-list{max-height:300px;overflow-y:auto;}
+        .and-item{display:flex;gap:0.65rem;padding:0.7rem 1rem;border-bottom:1px solid #f3f4f6;text-decoration:none;transition:background 0.15s;}
+        .and-item:hover{background:#fdf4ff;}
+        .and-item-msg{font-size:0.8rem;color:#1f2937;font-weight:600;line-height:1.35;}
+        .and-item-sub{font-size:0.7rem;color:#9ca3af;}
+        .and-empty{padding:1.5rem;text-align:center;color:#9ca3af;font-size:0.82rem;}
+        .pending-badge{display:inline-block;background:#ef4444;color:white;border-radius:12px;padding:0.12rem 0.55rem;font-size:0.7rem;font-weight:800;margin-left:5px;vertical-align:middle;}
+
+</style>
+</head>
+<body>
+
+<header class="page-header">
+    <div class="container">
+        
+        <h1>🏪 Store Admin Dashboard</h1>
+        <div style="display:flex;gap:0.75rem;align-items:center;">
+            <div class="admin-notif-wrap">
+                <button class="admin-notif-btn" id="notif-btn" aria-label="Pending orders">
+                    🔔{% if notif_count %}<span class="admin-notif-dot">{{ notif_count }}</span>{% endif %}
+                </button>
+                <div class="admin-notif-dropdown" id="notif-dropdown">
+                    <div class="and-head">🛒 Pending Orders <span style="opacity:0.8;font-size:0.75rem;">{{ notif_count }}</span></div>
+                    <div class="and-list">
+                        {% for n in notifications %}<a href="{{ n.url }}" class="and-item"><span style="font-size:1.2rem;">{{ n.icon }}</span><div><div class="and-item-msg">{{ n.message }}</div><div class="and-item-sub">{{ n.order_number }}</div></div></a>
+                        {% empty %}<div class="and-empty">🎉 No pending orders</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" style="background:none;border:none;color:white;cursor:pointer;font-weight:600;">Logout</button>
+            </form>
+        </div>
+    </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-box purple"><div class="num">{{ total_products }}</div><div class="lbl">Total Products</div></div>
+        <div class="stat-box red"><div class="num">{{ out_of_stock }}</div><div class="lbl">Out of Stock</div></div>
+        <div class="stat-box green"><div class="num">{{ total_orders }}</div><div class="lbl">Total Orders</div></div>
+        <div class="stat-box orange"><div class="num">{{ pending_orders_count }}</div><div class="lbl">Pending Orders</div></div>
+    </div>
+
+    <!-- Tab radio inputs -->
+    <input type="radio" name="tab" id="tab-products"   class="tab-input" checked>
+    <input type="radio" name="tab" id="tab-orders"     class="tab-input">
+    <input type="radio" name="tab" id="tab-categories" class="tab-input">
+    <input type="radio" name="tab" id="tab-pending" class="tab-input">
+
+    <div class="tab-bar">
+        <label for="tab-products"   class="tab-label label-products">📦 Products &amp; Stock</label>
+        <label for="tab-orders"     class="tab-label label-orders">🧾 Orders</label>
+        <label for="tab-categories" class="tab-label label-categories">🏷️ Categories</label>
+        <label for="tab-pending" class="tab-label label-pending">⚠️ Pending{% if pending_orders_count %} <span class="pending-badge">{{ pending_orders_count }}</span>{% endif %}</label>
+    </div>
+
+    <!-- ── Products Tab ── -->
+    <div class="tab-content content-products">
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2>Products</h2>
+                <a href="{% url 'add_product' %}" class="btn-add">+ Add Product</a>
+            </div>
+            {% if products %}
+            <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Update Stock</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr data-admin-product-id="{{ product.id }}" {% if not product.is_visible %}style="opacity:0.55;"{% endif %}>
+                        <td>
+                            <div style="font-weight:600;color:#1f2937;">
+                                {{ product.name }}
+                                {% if not product.is_visible %}<span style="margin-left:0.4rem;background:#fef3c7;color:#92400e;font-size:0.68rem;font-weight:700;padding:1px 6px;border-radius:10px;">HIDDEN</span>{% endif %}
+                            </div>
+                            {% if product.description %}
+                            <div style="font-size:0.78rem;color:#9ca3af;">{{ product.description|truncatechars:50 }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ product.category.name|default:"—" }}</td>
+                        <td><strong>₹{{ product.price }}</strong></td>
+                        <td>
+                            {% if product.stock == 0 %}
+                                <span class="stock-tag stock-zero">Out of Stock</span>
+                            {% elif product.stock <= 5 %}
+                                <span class="stock-tag stock-low">{{ product.stock }} left</span>
+                            {% else %}
+                                <span class="stock-tag stock-ok">{{ product.stock }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <form method="post" action="{% url 'update_stock' product.id %}" class="stock-form">
+                                {% csrf_token %}
+                                <input type="number" name="stock" value="{{ product.stock }}" min="0" class="stock-input">
+                                <button type="submit" class="btn-sm btn-stock-update">Save</button>
+                            </form>
+                        </td>
+                        <td>
+                            <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+                                <a href="{% url 'edit_product' product.id %}" class="btn-sm btn-edit">Edit</a>
+                                <form method="post" action="{% url 'toggle_product_visibility' product.id %}">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-sm" style="background:{% if product.is_visible %}#fef3c7;color:#92400e;{% else %}#d1fae5;color:#065f46;{% endif %}">
+                                        {% if product.is_visible %}🙈 Hide{% else %}👁 Show{% endif %}
+                                    </button>
+                                </form>
+                                <form method="post" action="{% url 'delete_product' product.id %}" onsubmit="return confirm('Permanently delete {{ product.name }}? This cannot be undone.')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn-sm btn-del">🗑 Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div style="padding:3rem;text-align:center;color:#9ca3af;">
+                <div style="font-size:3rem;margin-bottom:1rem;">📦</div>
+                No products yet. <a href="{% url 'add_product' %}" style="color:#a855f7;font-weight:600;">Add your first product →</a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── Orders Tab ── -->
+    <div class="tab-content content-orders">
+        <div class="section-card">
+            <div class="section-card-header"><h2>Store Orders</h2></div>
+            {% if orders %}
+            <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Update</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td><strong style="color:#a855f7;">{{ order.order_number }}</strong></td>
+                        <td>{{ order.user.username }}</td>
+                        <td>
+                            {% for item in order.items.all %}
+                            <div style="font-size:0.8rem;">{{ item.product_name }} ×{{ item.quantity }}</div>
+                            {% endfor %}
+                        </td>
+                        <td><strong>₹{{ order.total_amount }}</strong></td>
+                        <td style="font-size:0.8rem;color:#6b7280;">{{ order.created_at|date:"d M Y" }}<br>{{ order.created_at|date:"h:i A" }}</td>
+                        <td>
+                            <span class="status-pill pill-{{ order.status }}">
+                                {% if order.status == 'pending' %}⏳ Pending
+                                {% elif order.status == 'ready' %}📦 Ready
+                                {% elif order.status == 'completed' %}✅ Done
+                                {% elif order.status == 'cancelled' %}❌ Cancelled
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <form method="post" action="{% url 'update_order_status' order.id %}" class="order-status-form">
+                                {% csrf_token %}
+                                <select name="status" class="status-select">
+                                    <option value="pending"   {% if order.status == 'pending'   %}selected{% endif %}>Pending</option>
+                                    <option value="ready"     {% if order.status == 'ready'     %}selected{% endif %}>Ready</option>
+                                    <option value="completed" {% if order.status == 'completed' %}selected{% endif %}>Completed</option>
+                                    <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                </select>
+                                <button type="submit" class="btn-sm btn-stock-update">Update</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div style="padding:3rem;text-align:center;color:#9ca3af;">
+                <div style="font-size:3rem;margin-bottom:1rem;">🧾</div>
+                No orders yet.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ── Categories Tab (NEW) ── -->
+    <div class="tab-content content-categories">
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2>Categories</h2>
+                <span style="font-size:0.82rem;color:#6b7280;">Add categories via the Add Product form.</span>
+            </div>
+            {% if categories %}
+            <div class="categories-list">
+                {% for cat in categories %}
+                <div class="category-row">
+                    <div>
+                        <div class="category-name">{{ cat.name }}</div>
+                        <div class="category-meta">
+                            {{ cat.product_set.count }} product{{ cat.product_set.count|pluralize }} assigned
+                        </div>
+                    </div>
+                    <form method="post" action="{% url 'delete_category' cat.id %}"
+                          onsubmit="return confirm('Delete category \'{{ cat.name }}\'?\n\nProducts assigned to it will become uncategorised — they will NOT be deleted.');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn-sm btn-del">🗑 Delete</button>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="padding:3rem;text-align:center;color:#9ca3af;">
+                <div style="font-size:3rem;margin-bottom:1rem;">🏷️</div>
+                No categories yet. Create one while adding a product.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+
+    <!-- ── Pending Orders Tab ── -->
+    <div class="tab-content content-pending">
+        <div class="section-card">
+            <div class="section-card-header">
+                <h2>⚠️ Pending Store Orders</h2>
+                <span style="font-size:0.82rem;color:#6b7280;">{{ pending_store_orders|length }} order{{ pending_store_orders|length|pluralize }} awaiting processing</span>
+            </div>
+            {% if pending_store_orders %}
+            <div style="overflow-x:auto;">
+            <table>
+                <thead><tr><th>Order #</th><th>Customer</th><th>Items</th><th>Total</th><th>Date</th><th>Update</th></tr></thead>
+                <tbody>
+                {% for order in pending_store_orders %}
+                <tr id="order-{{ order.id }}">
+                    <td><strong style="color:#a855f7;">{{ order.order_number }}</strong></td>
+                    <td>{{ order.user.username }}</td>
+                    <td>{% for item in order.items.all %}<div style="font-size:0.8rem;">{{ item.product_name }} ×{{ item.quantity }}</div>{% endfor %}</td>
+                    <td><strong>₹{{ order.total_amount }}</strong></td>
+                    <td style="font-size:0.78rem;color:#6b7280;">{{ order.created_at|date:"d M, h:i A" }}</td>
+                    <td>
+                        <form method="post" action="{% url 'update_order_status' order.id %}" style="display:flex;gap:4px;align-items:center;">
+                            {% csrf_token %}
+                            <select name="status" class="status-select">
+                                <option value="ready">Ready</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                            </select>
+                            <button type="submit" class="btn-sm btn-stock-update">✔</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div style="padding:3rem;text-align:center;color:#9ca3af;">
+                <div style="font-size:3rem;margin-bottom:1rem;">🎉</div>
+                No pending orders — all caught up!
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+</div>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <p>&copy; {% now "Y" %} College Utility Portal. All rights reserved.</p>
+    </div>
+</footer>
+
+<script>(function(){
+  var nb=document.getElementById("notif-btn"),nd=document.getElementById("notif-dropdown");
+  if(!nb||!nd)return;
+  var seen=false;
+  nb.addEventListener("click",function(e){
+    e.stopPropagation();
+    nd.classList.toggle("open");
+    if(!seen){
+      seen=true;
+      var dot=nb.querySelector('.admin-notif-dot');
+      if(dot){dot.style.transition='opacity 0.2s';dot.style.opacity='0';setTimeout(function(){dot.remove();},200);}
+      fetch("{% url 'mark_notifications_seen' %}",{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}'},credentials:'same-origin'});
+    }
+  });
+  document.addEventListener("click",function(e){if(!nd.contains(e.target)&&e.target!==nb)nd.classList.remove("open");});
+})();</script>
+
+<script>
+/* Admin dashboard smart refresh — polls /store/api/state/ every 10s.
+   Updates stock values in-place. Never reloads the page or changes the tab. */
+(function(){
+    var POLL_MS = 10000;
+    var lastHash = null;
+
+    function showToast(msg){
+        var t = document.getElementById("admin-refresh-toast");
+        if(!t){
+            t = document.createElement("div");
+            t.id = "admin-refresh-toast";
+            t.style.cssText = "position:fixed;bottom:1.5rem;right:1.5rem;background:#1f2937;color:white;padding:0.55rem 1.2rem;border-radius:24px;font-size:0.82rem;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,0.22);z-index:9999;transition:opacity 0.3s ease;opacity:0;pointer-events:none;";
+            document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        t.style.opacity = "1";
+        setTimeout(function(){ t.style.opacity = "0"; }, 2800);
+    }
+
+    function applyStockUpdates(products){
+        var changed = false;
+        products.forEach(function(p){
+            /* update stock display cell */
+            var row = document.querySelector('[data-admin-product-id="' + p.id + '"]');
+            if(!row) return;
+            var stockTag = row.querySelector(".stock-tag");
+            if(stockTag){
+                var newHtml, newClass;
+                if(p.stock === 0){
+                    newHtml = "Out of Stock"; newClass = "stock-tag stock-zero";
+                } else if(p.stock <= 5){
+                    newHtml = p.stock + " left"; newClass = "stock-tag stock-low";
+                } else {
+                    newHtml = String(p.stock); newClass = "stock-tag stock-ok";
+                }
+                if(stockTag.textContent.trim() !== newHtml){
+                    stockTag.textContent = newHtml;
+                    stockTag.className = newClass;
+                    changed = true;
+                }
+            }
+            /* update stock input default value (only if not focused) */
+            var input = row.querySelector(".stock-input");
+            if(input && document.activeElement !== input){
+                if(parseInt(input.value) !== p.stock){
+                    input.value = p.stock;
+                }
+            }
+        });
+        return changed;
+    }
+
+    function poll(){
+        fetch("/store/api/state/", {credentials: "same-origin"})
+            .then(function(r){ return r.json(); })
+            .then(function(resp){
+                if(lastHash === null){ lastHash = resp.hash; return; }
+                if(resp.hash === lastHash) return;
+                lastHash = resp.hash;
+                var changed = applyStockUpdates(resp.data.products || []);
+                if(changed) showToast("🔄 Stock updated");
+            })
+            .catch(function(){});
+    }
+
+    setTimeout(function(){ poll(); setInterval(poll, POLL_MS); }, 1500);
+})();
+</script>
+</body>
+</html>

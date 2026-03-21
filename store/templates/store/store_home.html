@@ -1,0 +1,510 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Store - Campus Portal</title>
+    <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+    <style>
+        .store-top-bar-outer {
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            color: white; padding: 1.1rem 0;
+            position: sticky; top: 0; z-index: 100;
+            box-shadow: 0 2px 8px rgba(168,85,247,0.25);
+        }
+        .store-top-bar-outer .container { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; }
+        .store-top-bar-outer h1  { font-size:1.25rem; font-weight:700; white-space:nowrap; }
+        .store-top-bar-outer a   { color:white; text-decoration:none; font-weight:600; white-space:nowrap; }
+
+        .cart-top-btn {
+            display:inline-flex; align-items:center; gap:5px;
+            background:rgba(255,255,255,0.22);
+            border:1.5px solid rgba(255,255,255,0.5);
+            color:white; padding:0.4rem 1rem; border-radius:20px;
+            font-weight:700; font-size:0.88rem; text-decoration:none;
+            transition: background 0.18s;
+        }
+        .cart-top-btn:hover { background:rgba(255,255,255,0.35); }
+        .cart-badge-inline { background:#ef4444; color:white; border-radius:10px; padding:1px 7px; font-size:0.72rem; font-weight:700; margin-left:3px; }
+
+        .search-bar-wrap { display:flex; gap:0.75rem; margin-bottom:1.25rem; flex-wrap:wrap; align-items:center; }
+        .live-search-input {
+            flex:1; max-width:480px;
+            padding:0.6rem 1rem 0.6rem 2.6rem;
+            border:1.5px solid #e5e7eb; border-radius:24px;
+            font-size:0.92rem; outline:none;
+            background: white url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%239ca3af' viewBox='0 0 16 16'%3E%3Cpath d='M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001l3.85 3.85a1 1 0 0 0 1.415-1.415l-3.85-3.85zm-5.242 1.156a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z'/%3E%3C/svg%3E") no-repeat 0.85rem center;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .live-search-input:focus { border-color:#a855f7; box-shadow:0 0 0 3px rgba(168,85,247,0.14); }
+        .live-search-input::placeholder { color:#9ca3af; }
+        .search-clear-btn {
+            position:absolute; right:0.75rem; top:50%; transform:translateY(-50%);
+            background:none; border:none; cursor:pointer; color:#9ca3af; font-size:1rem; line-height:1;
+            display:none;
+        }
+        .search-wrap { position:relative; flex:1; max-width:480px; display:flex; align-items:center; }
+        #live-search-count { font-size:0.82rem; color:#6b7280; font-weight:500; white-space:nowrap; }
+        .product-card.hidden { display:none !important; }
+
+        .category-filters { display:flex; gap:0.5rem; flex-wrap:wrap; margin-bottom:1.75rem; }
+        .cat-btn { padding:0.38rem 0.9rem; border-radius:20px; border:2px solid #e5e7eb; background:white; cursor:pointer; font-size:0.83rem; font-weight:600; text-decoration:none; color:#374151; transition:all 0.18s; }
+        .cat-btn:hover { border-color:#a855f7; color:#a855f7; transform:scale(1.04); }
+        .cat-btn.active { border-color:transparent; background:linear-gradient(135deg,#a855f7,#ec4899); color:white; }
+
+        .products-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:1.5rem; }
+
+        /* ── Product card hover: lift + gentle glow ── */
+        .product-card {
+            background:white; border-radius:14px; overflow:hidden;
+            box-shadow:0 2px 8px rgba(0,0,0,0.08);
+            transition: transform 0.22s cubic-bezier(.34,1.56,.64,1), box-shadow 0.22s;
+            display:flex; flex-direction:column;
+        }
+        .product-card:hover {
+            transform: translateY(-7px) scale(1.015);
+            box-shadow: 0 14px 36px rgba(168,85,247,0.18);
+        }
+
+        .product-img-wrapper { width:100%; height:160px; overflow:hidden; background:linear-gradient(135deg,#f3e8ff,#e0e7ff); display:flex; align-items:center; justify-content:center; font-size:3rem; }
+        .product-img-wrapper img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.35s; }
+        .product-card:hover .product-img-wrapper img { transform:scale(1.07); }
+
+        .product-body { padding:1rem; flex:1; display:flex; flex-direction:column; }
+        .product-category-tag { font-size:0.72rem; color:#a855f7; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.2rem; }
+        .product-title { font-weight:600; color:#1f2937; margin-bottom:0.4rem; font-size:0.95rem; }
+        .product-price { font-size:1.15rem; font-weight:700; color:#1f2937; margin-bottom:0.4rem; }
+        .stock-badge { display:inline-block; font-size:0.72rem; font-weight:700; padding:0.18rem 0.6rem; border-radius:12px; margin-bottom:0.75rem; }
+        .stock-in  { background:#dcfce7; color:#166534; }
+        .stock-low { background:#fef3c7; color:#92400e; }
+        .stock-out { background:#fee2e2; color:#991b1b; }
+        .btn-cart { margin-top:auto; padding:0.6rem; background:linear-gradient(135deg,#a855f7,#ec4899); color:white; border:none; border-radius:8px; cursor:pointer; font-weight:700; width:100%; transition:opacity 0.2s,transform 0.15s; text-decoration:none; text-align:center; display:block; }
+        .btn-cart:hover { opacity:0.9; transform:scale(1.02); }
+        .btn-cart.disabled { background:#e5e7eb; color:#9ca3af; cursor:not-allowed; pointer-events:none; }
+
+        .section-heading-store { font-size:1.35rem; font-weight:700; color:#1f2937; margin-bottom:1.25rem; }
+
+        .alert { padding:0.75rem 1rem; border-radius:8px; margin-bottom:1rem; font-weight:500; }
+        .alert-success { background:#dcfce7; color:#166534; }
+        .alert-error   { background:#fee2e2; color:#991b1b; }
+        .alert-warning { background:#fef3c7; color:#92400e; }
+    </style>
+</head>
+<body>
+
+<!-- Sticky top bar with cart button -->
+<header class="store-top-bar-outer">
+    <div class="container">
+        <a href="{% url 'home' %}">← Home</a>
+        <h1>🛒 College Store</h1>
+        <div style="display:flex;gap:0.75rem;align-items:center;">
+            <a href="{% url 'my_store_orders' %}">📦 My Orders</a>
+            <a href="{% url 'cart' %}" class="cart-top-btn">
+                🛍️ Cart
+                {% if cart_count %}<span class="cart-badge-inline">{{ cart_count }}</span>{% endif %}
+            </a>
+            <div class="notif-wrap" style="position:relative;display:inline-flex;">
+                <button id="notif-btn" style="background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);color:white;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.15rem;position:relative;">
+                    🔔{% if notif_count %}<span style="position:absolute;top:-2px;right:-2px;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;font-size:0.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;">{{ notif_count }}</span>{% endif %}
+                </button>
+                <div id="notif-dropdown" style="position:absolute;top:calc(100% + 10px);right:0;width:300px;background:white;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:9999;display:none;overflow:hidden;border:1px solid #e5e7eb;">
+                    <div style="padding:0.9rem 1.1rem;background:linear-gradient(135deg,#a855f7,#ec4899);color:white;font-weight:700;font-size:0.88rem;">🔔 Order Updates</div>
+                    <div style="max-height:300px;overflow-y:auto;">{% for n in notifications %}<a href="{{ n.url }}" style="display:flex;gap:0.7rem;padding:0.7rem 1rem;border-bottom:1px solid #f3f4f6;text-decoration:none;"><span style="font-size:1.2rem;">{{ n.icon }}</span><div><div style="font-size:0.8rem;color:#1f2937;font-weight:600;">{{ n.message }}</div></div></a>{% empty %}<div style="padding:1.5rem;text-align:center;color:#9ca3af;font-size:0.82rem;">No orders yet</div>{% endfor %}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- SIDEBAR (users only) -->
+<input type="checkbox" id="menu-toggle" class="menu-toggle-checkbox">
+<div class="hamburger-container">
+    <label for="menu-toggle" class="hamburger-btn" aria-label="Open menu">
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+        <span class="hamburger-line"></span>
+    </label>
+</div>
+<nav class="side-menu">
+    <div class="menu-header">
+        <h3 class="menu-title">🎓 Campus Portal</h3>
+        <p style="color:rgba(255,255,255,0.85);font-size:0.82rem;margin-top:4px;">{{ user.username }}</p>
+    </div>
+    <div class="menu-nav">
+        <a href="{% url 'home' %}">🏠 Home</a>
+        <a href="{% url 'repro' %}">🖨️ Repro Services</a>
+        <a href="{% url 'store_home' %}">🛒 College Store</a>
+        <a href="{% url 'cart' %}">🛍️ Cart{% if cart_count %} <span style="background:#a855f7;color:white;border-radius:10px;padding:1px 7px;font-size:0.75rem;margin-left:4px;">{{ cart_count }}</span>{% endif %}</a>
+        <a href="{% url 'my_orders_combined' %}">📦 My Orders</a>
+        <a href="{% url 'about' %}">ℹ️ About</a>
+        <div style="padding:1rem 1.25rem;border-top:1px solid #f3f4f6;margin-top:0.5rem;">
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <button type="submit" style="width:100%;padding:0.65rem;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;">
+                    🚪 Logout
+                </button>
+            </form>
+        </div>
+    </div>
+</nav>
+<label for="menu-toggle" class="menu-overlay"></label>
+
+<main class="page-content">
+<div class="container">
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{% if message.tags == 'error' %}error{% elif message.tags == 'warning' %}warning{% else %}success{% endif %}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="search-bar-wrap">
+        <div class="search-wrap">
+            <input type="text" id="live-search" class="live-search-input"
+                   placeholder="Search products..."
+                   value="{{ query }}"
+                   autocomplete="off">
+            <button class="search-clear-btn" id="search-clear" title="Clear search">✕</button>
+        </div>
+        <span id="live-search-count"></span>
+    </div>
+
+    <div class="category-filters">
+        <a href="{% url 'store_home' %}{% if query %}?q={{ query }}{% endif %}" class="cat-btn {% if not selected_category %}active{% endif %}">All</a>
+        {% for cat in categories %}
+        <a href="?category={{ cat.id }}{% if query %}&q={{ query }}{% endif %}" class="cat-btn {% if selected_category == cat.id|stringformat:'s' %}active{% endif %}">{{ cat.name }}</a>
+        {% endfor %}
+    </div>
+
+    <h2 class="section-heading-store" id="products-heading">
+        {% if query %}Results for "{{ query }}"{% else %}All Products{% endif %}
+    </h2>
+
+    {% if products %}
+    <div class="products-grid">
+        {% for product in products %}
+        <div class="product-card" data-name="{{ product.name|lower }}" data-cat="{{ product.category.name|lower|default:'' }}" data-product-id="{{ product.id }}">
+            <div class="product-img-wrapper">
+                {% if product.image_url %}
+                    <img src="{{ product.image_url }}" alt="{{ product.name }}"
+                         onerror="this.style.display='none';this.parentElement.innerHTML='📦';">
+                {% else %}📦{% endif %}
+            </div>
+            <div class="product-body">
+                {% if product.category %}
+                <div class="product-category-tag">{{ product.category.name }}</div>
+                {% endif %}
+                <div class="product-title">{{ product.name }}</div>
+                <div class="product-price">₹{{ product.price }}</div>
+                {% if product.stock == 0 %}
+                    <span class="stock-badge stock-out">Out of Stock</span>
+                {% elif product.stock <= 5 %}
+                    <span class="stock-badge stock-low">Only {{ product.stock }} left</span>
+                {% else %}
+                    <span class="stock-badge stock-in">In Stock ({{ product.stock }})</span>
+                {% endif %}
+                {% if product.in_stock %}
+                    <a href="{% url 'add_to_cart' product.id %}" class="btn-cart" data-add-url="{% url 'add_to_cart' product.id %}">🛒 Add to Cart</a>
+                {% else %}
+                    <span class="btn-cart disabled">Out of Stock</span>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-title">No products found</div>
+        <div class="empty-text">Try a different search or browse all categories.</div>
+        <a href="{% url 'store_home' %}" class="empty-button">Browse All</a>
+    </div>
+    {% endif %}
+
+</div>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <p>&copy; {% now "Y" %} College Utility Portal. All rights reserved.</p>
+    </div>
+</footer>
+
+<script>
+// ── Bell ──
+(function(){
+    var nb=document.getElementById("notif-btn"),nd=document.getElementById("notif-dropdown");
+    if(!nb||!nd)return;
+    var seen=false;
+    nb.addEventListener("click",function(e){
+        e.stopPropagation();
+        nd.style.display=nd.style.display==="block"?"none":"block";
+        if(!seen){
+            seen=true;
+            var dot=nb.querySelector("span[style*='background:#ef4444']");
+            if(dot){dot.style.transition='opacity 0.2s';dot.style.opacity='0';setTimeout(function(){dot.remove();},200);}
+            fetch("{% url 'mark_notifications_seen' %}",{method:'POST',headers:{'X-CSRFToken':'{{ csrf_token }}'},credentials:'same-origin'});
+        }
+    });
+    document.addEventListener("click",function(e){if(!nd.contains(e.target)&&e.target!==nb)nd.style.display="none";});
+})();
+
+// ── Live search ──
+(function(){
+    var input   = document.getElementById("live-search");
+    var clearBtn= document.getElementById("search-clear");
+    var counter = document.getElementById("live-search-count");
+    var heading = document.getElementById("products-heading");
+    var cards   = document.querySelectorAll(".product-card");
+
+    if(!input) return;
+
+    function filter() {
+        var q = input.value.trim().toLowerCase();
+
+        // Show/hide clear button
+        clearBtn.style.display = q ? "block" : "none";
+
+        var visible = 0;
+        cards.forEach(function(card) {
+            var name = card.dataset.name || "";
+            var cat  = card.dataset.cat  || "";
+            var match = !q || name.includes(q) || cat.includes(q);
+            card.classList.toggle("hidden", !match);
+            if(match) visible++;
+        });
+
+        // Update heading and counter
+        if(q) {
+            heading.textContent = 'Results for "' + input.value.trim() + '"';
+            counter.textContent = visible + ' product' + (visible !== 1 ? 's' : '') + ' found';
+        } else {
+            heading.textContent = "All Products";
+            counter.textContent = "";
+        }
+
+        // Show/hide empty state
+        var emptyState = document.querySelector(".empty-state");
+        if(emptyState) emptyState.style.display = (visible === 0 && cards.length > 0) ? "block" : "none";
+
+        // If no cards at all, don't interfere
+        if(cards.length === 0) {
+            counter.textContent = "";
+        }
+    }
+
+    input.addEventListener("input", filter);
+
+    clearBtn.addEventListener("click", function() {
+        input.value = "";
+        filter();
+        input.focus();
+    });
+
+    // Run on load in case URL had a ?q= (pre-filled)
+    if(input.value) filter();
+})();
+</script>
+<script>
+/* ── Store Live Refresh ──────────────────────────────────────────────────────
+   Polls /store/api/state/ every 4s.
+   On change: updates product cards and order status pills in-place.
+   No full page reload — zero flicker.
+────────────────────────────────────────────────────────────────────────────── */
+(function () {
+    var POLL_MS   = 4000;
+    var API_URL   = "/store/api/state/";
+    var lastHash  = null;
+    var toastTimer = null;
+
+    /* ── Toast ── */
+    function showToast(msg) {
+        var t = document.getElementById("lr-toast");
+        if (!t) {
+            t = document.createElement("div");
+            t.id = "lr-toast";
+            t.style.cssText = [
+                "position:fixed","bottom:1.5rem","left:50%",
+                "transform:translateX(-50%) translateY(80px)",
+                "background:#1f2937","color:white",
+                "padding:0.55rem 1.25rem","border-radius:24px",
+                "font-size:0.82rem","font-weight:600",
+                "box-shadow:0 4px 16px rgba(0,0,0,0.22)",
+                "z-index:9999","transition:transform 0.3s ease, opacity 0.3s ease",
+                "opacity:0","pointer-events:none"
+            ].join(";");
+            document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        clearTimeout(toastTimer);
+        // slide in
+        requestAnimationFrame(function(){
+            t.style.transform = "translateX(-50%) translateY(0)";
+            t.style.opacity   = "1";
+        });
+        toastTimer = setTimeout(function(){
+            t.style.transform = "translateX(-50%) translateY(80px)";
+            t.style.opacity   = "0";
+        }, 2800);
+    }
+
+    /* ── Hide/show product cards based on visibility ── */
+    function applyVisibility(hiddenIds) {
+        var changed = false;
+        /* hide cards that became hidden */
+        (hiddenIds || []).forEach(function(id) {
+            var card = document.querySelector('[data-product-id="' + id + '"]');
+            if (card && card.style.display !== "none") {
+                card.style.display = "none";
+                changed = true;
+            }
+        });
+        /* show cards that became visible again */
+        document.querySelectorAll('[data-product-id]').forEach(function(card) {
+            var id = parseInt(card.getAttribute('data-product-id'));
+            if (!(hiddenIds || []).includes(id) && card.style.display === "none") {
+                card.style.display = "";
+                changed = true;
+            }
+        });
+        return changed;
+    }
+
+    /* ── Update product cards ── */
+    function applyProducts(products) {
+        var changed = false;
+        products.forEach(function(p) {
+            /* find card by data-product-id attribute */
+            var card = document.querySelector('[data-product-id="' + p.id + '"]');
+            if (!card) return;
+
+            /* stock badge */
+            var badge = card.querySelector(".stock-badge");
+            if (badge) {
+                var newBadge = "";
+                if (p.stock === 0) {
+                    newBadge = '<span class="stock-badge stock-out">Out of Stock</span>';
+                } else if (p.stock <= 5) {
+                    newBadge = '<span class="stock-badge stock-low">Only ' + p.stock + ' left</span>';
+                } else {
+                    newBadge = '<span class="stock-badge stock-in">In Stock (' + p.stock + ')</span>';
+                }
+                if (badge.outerHTML !== newBadge) {
+                    badge.outerHTML = newBadge;
+                    changed = true;
+                }
+            }
+
+            /* add-to-cart button */
+            var btn = card.querySelector(".btn-cart");
+            if (btn) {
+                var addUrl = btn.dataset.addUrl || btn.getAttribute("href") || "";
+                if (p.stock === 0) {
+                    if (!btn.classList.contains("disabled")) {
+                        btn.outerHTML = '<span class="btn-cart disabled">Out of Stock</span>';
+                        changed = true;
+                    }
+                } else {
+                    if (btn.classList.contains("disabled") && addUrl) {
+                        btn.outerHTML = '<a href="' + addUrl + '" class="btn-cart">🛒 Add to Cart</a>';
+                        changed = true;
+                    }
+                }
+            }
+
+            /* price */
+            var priceEl = card.querySelector(".product-price");
+            if (priceEl) {
+                var newPrice = "₹" + parseFloat(p.price).toFixed(2).replace(/\.00$/, "");
+                if (priceEl.textContent.trim() !== newPrice) {
+                    priceEl.textContent = newPrice;
+                    changed = true;
+                }
+            }
+        });
+        return changed;
+    }
+
+    /* ── Update order status pills ── */
+    function applyOrders(orderStatuses) {
+        var changed = false;
+        var LABELS = {
+            pending:   "⏳ Pending",
+            ready:     "📦 Ready for Pickup",
+            completed: "✅ Completed",
+            cancelled: "❌ Cancelled"
+        };
+        var CLASSES = {
+            pending:   "status-pending",
+            ready:     "status-ready",
+            completed: "status-completed",
+            cancelled: "status-cancelled"
+        };
+        /* also handle spill classes (combined orders page) */
+        var SPILL_CLASSES = {
+            pending:   "spill-pending",
+            ready:     "spill-ready",
+            completed: "spill-completed",
+            cancelled: "spill-cancelled"
+        };
+        orderStatuses.forEach(function(o) {
+            /* status-pill variant (store/my_orders.html) */
+            var pill = document.querySelector('[data-order-id="' + o.id + '"] .status-pill');
+            if (pill) {
+                var wantClass = CLASSES[o.status];
+                if (!pill.classList.contains(wantClass)) {
+                    pill.className = "status-pill " + wantClass;
+                    pill.textContent = LABELS[o.status] || o.status;
+                    changed = true;
+                }
+            }
+            /* spill variant (my_orders combined) */
+            var spill = document.querySelector('[data-order-id="' + o.id + '"] .spill');
+            if (spill) {
+                var wantSpill = SPILL_CLASSES[o.status];
+                if (!spill.classList.contains(wantSpill)) {
+                    spill.className = "spill " + wantSpill;
+                    spill.textContent = LABELS[o.status] || o.status;
+                    changed = true;
+                }
+            }
+        });
+        return changed;
+    }
+
+    /* ── Poll ── */
+    function poll() {
+        fetch(API_URL, {credentials: "same-origin"})
+            .then(function(r){ return r.json(); })
+            .then(function(resp) {
+                if (lastHash === null) {
+                    lastHash = resp.hash;
+                    return;
+                }
+                if (resp.hash === lastHash) return;
+
+                lastHash = resp.hash;
+                var productChanged = applyProducts(resp.data.products || []);
+                var visibilityChanged = applyVisibility(resp.data.hidden_ids || []);
+                var orderChanged   = applyOrders(resp.data.order_statuses || []);
+
+                if (productChanged || orderChanged || visibilityChanged) {
+                    showToast("🔄 Store updated");
+                }
+            })
+            .catch(function(){
+                /* silently ignore network errors — will retry next tick */
+            });
+    }
+
+    /* start polling after first tick */
+    setTimeout(function(){
+        poll();
+        setInterval(poll, POLL_MS);
+    }, 1000);
+})();
+
+</script>
+</body>
+</html>

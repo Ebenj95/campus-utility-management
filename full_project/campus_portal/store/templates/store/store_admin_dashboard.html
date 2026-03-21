@@ -1,0 +1,211 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Store Admin — Campus Portal</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="page-header admin">
+  <div class="container">
+    <span></span>
+    <h1>🏪 Store Admin Dashboard</h1>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+      <button type="submit" style="background:none;border:none;color:rgba(255,255,255,0.8);cursor:pointer;font-weight:600;">Logout</button>
+    </form>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Stats -->
+  <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);">
+    <div class="stat-card"><div class="stat-icon purple">📦</div><div><div class="stat-num">{{ total_products }}</div><div class="stat-lbl">Products</div></div></div>
+    <div class="stat-card"><div class="stat-icon red">🚨</div><div><div class="stat-num">{{ out_of_stock }}</div><div class="stat-lbl">Out of Stock</div></div></div>
+    <div class="stat-card"><div class="stat-icon yellow">⚠️</div><div><div class="stat-num">{{ low_stock_count }}</div><div class="stat-lbl">Low Stock</div></div></div>
+    <div class="stat-card"><div class="stat-icon green">🧾</div><div><div class="stat-num">{{ total_orders }}</div><div class="stat-lbl">Total Orders</div></div></div>
+    <div class="stat-card"><div class="stat-icon indigo">💳</div><div><div class="stat-num">{{ paid_orders }}</div><div class="stat-lbl">Awaiting Pickup</div></div></div>
+  </div>
+
+  <!-- Notifications panel -->
+  {% if notifications %}
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header" style="background:linear-gradient(135deg,#fff7ed,#fef3c7);">
+      <h3>🔔 Notifications
+        {% if unread_count %}<span class="notif-badge">{{ unread_count }} new</span>{% endif %}
+      </h3>
+    </div>
+    <div class="notif-list">
+      {% for n in notifications %}
+      <div class="notif-item {% if n.type == 'new_order' %}new-order{% else %}low-stock{% endif %}">
+        <div class="notif-icon">{% if n.type == 'new_order' %}🛒{% else %}⚠️{% endif %}</div>
+        <div class="notif-msg">{{ n.message }}</div>
+        <div class="notif-time">{{ n.created_at|timesince }} ago</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Tabs: Products | Orders -->
+  <input type="radio" name="admin-tab" id="tab-products" class="tab-radio" checked>
+  <input type="radio" name="admin-tab" id="tab-orders" class="tab-radio">
+
+  <div class="tab-bar">
+    <label for="tab-products" class="tab-label lbl-products">📦 Products &amp; Stock</label>
+    <label for="tab-orders"   class="tab-label lbl-orders">🧾 Orders</label>
+  </div>
+
+  <style>
+    #tab-products:checked ~ .tab-bar .lbl-products,
+    #tab-orders:checked   ~ .tab-bar .lbl-orders   { background:var(--store-grad); color:white; }
+    #tab-products:checked ~ .pane-products { display:block; }
+    #tab-orders:checked   ~ .pane-orders   { display:block; }
+    .pane-products, .pane-orders { display:none; }
+  </style>
+
+  <!-- ── PRODUCTS PANE ──────────────────────────────── -->
+  <div class="pane-products">
+    <div class="card">
+      <div class="card-header">
+        <h3>All Products</h3>
+        <a href="{% url 'add_product' %}" class="btn btn-store btn-sm">+ Add Product</a>
+      </div>
+      {% if products %}
+      <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Product</th><th>Category</th><th>Price</th><th>Stock</th>
+            <th>Low Stock Alert</th><th>Update Stock</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in products %}
+          <tr>
+            <td>
+              <div style="font-weight:700;">{{ p.name }}</div>
+              {% if p.description %}<div style="font-size:0.75rem;color:var(--gray-500);">{{ p.description|truncatechars:45 }}</div>{% endif %}
+            </td>
+            <td>{{ p.category.name|default:"—" }}</td>
+            <td><strong>₹{{ p.price }}</strong></td>
+            <td>
+              {% if p.stock == 0 %}
+                <span class="badge badge-red">Out of Stock</span>
+              {% elif p.is_low_stock %}
+                <span class="badge badge-yellow">⚠️ {{ p.stock }} left</span>
+              {% else %}
+                <span class="badge badge-green">{{ p.stock }}</span>
+              {% endif %}
+            </td>
+            <td style="color:var(--gray-500);font-size:0.8rem;">Alert at ≤ {{ p.low_stock_threshold }}</td>
+            <td>
+              <form method="post" action="{% url 'update_stock' p.id %}" class="stock-edit">
+                {% csrf_token %}
+                <input type="number" name="stock" value="{{ p.stock }}" min="0" class="stock-num-input">
+                <button type="submit" class="btn btn-store btn-sm">Save</button>
+              </form>
+            </td>
+            <td>
+              <div style="display:flex;gap:0.4rem;">
+                <a href="{% url 'edit_product' p.id %}" class="btn btn-ghost btn-sm">✏️ Edit</a>
+                <form method="post" action="{% url 'delete_product' p.id %}" onsubmit="return confirm('Remove {{ p.name }}?')">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-danger btn-sm">Remove</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <div class="empty-title">No products yet</div>
+        <a href="{% url 'add_product' %}" class="btn btn-store">Add First Product</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── ORDERS PANE ────────────────────────────────── -->
+  <div class="pane-orders">
+    <div class="card">
+      <div class="card-header"><h3>All Store Orders</h3></div>
+      {% if orders %}
+      <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th>
+            <th>Date</th><th>Status</th><th>Update</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+          <tr>
+            <td><strong style="color:var(--purple);">{{ order.order_number }}</strong></td>
+            <td>{{ order.user.username }}</td>
+            <td style="font-size:0.8rem;">
+              {% for item in order.items.all %}
+              <div>{{ item.product_name }} ×{{ item.quantity }}</div>
+              {% endfor %}
+            </td>
+            <td><strong>₹{{ order.total_amount }}</strong></td>
+            <td style="font-size:0.78rem;color:var(--gray-500);">
+              {{ order.created_at|date:"d M Y" }}<br>{{ order.created_at|date:"h:i A" }}
+            </td>
+            <td>
+              {% if order.status == 'paid' %}<span class="badge badge-indigo">💳 Paid</span>
+              {% elif order.status == 'collected' %}<span class="badge badge-green">✅ Collected</span>
+              {% elif order.status == 'cancelled' %}<span class="badge badge-red">❌ Cancelled</span>
+              {% endif %}
+            </td>
+            <td>
+              <form method="post" action="{% url 'update_order_status' order.id %}" style="display:flex;gap:0.4rem;">
+                {% csrf_token %}
+                <select name="status" class="form-select" style="padding:0.35rem 0.5rem;font-size:0.8rem;min-width:130px;">
+                  <option value="paid"      {% if order.status == 'paid' %}selected{% endif %}>💳 Paid</option>
+                  <option value="collected" {% if order.status == 'collected' %}selected{% endif %}>✅ Collected</option>
+                  <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>❌ Cancelled</option>
+                </select>
+                <button type="submit" class="btn btn-ghost btn-sm">Save</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <div class="empty-icon">🧾</div>
+        <div class="empty-title">No orders yet</div>
+        <div class="empty-text">Orders will appear here when students make purchases.</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+</main>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal</div>
+</footer>
+</body>
+</html>

@@ -1,0 +1,179 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Repro Services — Campus Portal</title>
+  <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+{% include "printing/includes/sidebar.html" %}
+
+<header class="page-header repro">
+  <div class="container">
+    <a href="{% url 'home' %}">← Home</a>
+    <h1>🖨️ Repro Services</h1>
+    <a href="{% url 'orders' %}">My Orders</a>
+  </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+  {% if messages %}
+    {% for message in messages %}
+    <div class="alert alert-{% if message.tags == 'error' %}error{% else %}success{% endif %}">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Info banner -->
+  <div style="background:linear-gradient(135deg,#eff6ff,#e0e7ff);border-radius:var(--radius);padding:1.25rem 1.5rem;margin-bottom:1.5rem;display:flex;gap:1rem;align-items:flex-start;">
+    <div style="font-size:1.5rem;">ℹ️</div>
+    <div>
+      <div style="font-weight:700;color:var(--gray-900);margin-bottom:0.25rem;">How it works</div>
+      <div style="color:var(--gray-500);font-size:0.875rem;">Upload your document, choose print settings, then proceed to payment. Collect your prints with your Order ID.</div>
+    </div>
+  </div>
+
+  <form method="POST" enctype="multipart/form-data" id="repro-form">
+    {% csrf_token %}
+
+    <div class="repro-grid">
+
+      <!-- Upload Card -->
+      <div class="repro-card">
+        <div class="repro-card-title">📤 Upload Document</div>
+
+        <div class="upload-area" id="upload-area">
+          <input type="file" id="file-upload" name="document" class="file-input" accept=".pdf,.doc,.docx,.ppt,.pptx" required>
+          <label for="file-upload">
+            <div class="upload-icon">📁</div>
+            <div class="upload-title">Drop file here or click to browse</div>
+            <div class="upload-sub">PDF, DOC, DOCX, PPT, PPTX</div>
+          </label>
+        </div>
+
+        <div id="previewBox" style="display:none;margin-top:1rem;">
+          <div style="background:var(--gray-50);border-radius:var(--radius-sm);padding:0.875rem;margin-bottom:0.75rem;display:flex;align-items:center;gap:0.75rem;">
+            <span style="font-size:1.5rem;">📄</span>
+            <div>
+              <div id="fileName" style="font-weight:600;font-size:0.875rem;color:var(--gray-900);"></div>
+              <div id="fileSize" style="font-size:0.75rem;color:var(--gray-500);"></div>
+            </div>
+          </div>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;font-weight:600;color:var(--gray-700);">
+            <input type="checkbox" id="confirmCheck" style="width:16px;height:16px;accent-color:var(--blue);">
+            I confirm this is the correct file
+          </label>
+        </div>
+      </div>
+
+      <!-- Settings Card -->
+      <div class="repro-card">
+        <div class="repro-card-title">⚙️ Print Settings</div>
+
+        <div class="form-group">
+          <label class="form-label">Number of Copies</label>
+          <input type="number" name="copies" min="1" value="1" class="form-input" style="max-width:120px;" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Color Mode</label>
+          <div class="option-grid" id="color-options">
+            <div class="option-button selected" data-value="bw">⬛ Black &amp; White <span class="option-price">₹2/pg</span></div>
+            <div class="option-button" data-value="color">🎨 Color <span class="option-price">₹10/pg</span></div>
+          </div>
+          <input type="hidden" name="color_mode" id="color_mode" value="bw">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Paper Size</label>
+          <div class="option-grid" id="paper-options">
+            <div class="option-button selected" data-value="A4">A4</div>
+            <div class="option-button" data-value="A3">A3 <span class="option-price">2×</span></div>
+          </div>
+          <input type="hidden" name="paper_size" id="paper_size" value="A4">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Print Side</label>
+          <div class="option-grid" id="side-options">
+            <div class="option-button selected" data-value="single">Single Sided</div>
+            <div class="option-button" data-value="double">Double Sided</div>
+          </div>
+          <input type="hidden" name="print_side" id="print_side" value="single">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Binding</label>
+          <select name="binding" class="form-select">
+            <option value="none">No Binding</option>
+            <option value="spiral">Spiral Binding (+₹30)</option>
+            <option value="thermal">Thermal Binding (+₹50)</option>
+            <option value="hardcover">Hardcover (+₹100)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Special Instructions <span style="color:var(--gray-500);font-weight:400;">(optional)</span></label>
+          <textarea name="instructions" class="form-input" rows="3" placeholder="Any specific requirements..."></textarea>
+        </div>
+
+        <button type="submit" class="submit-button" id="submitBtn" disabled>
+          Proceed to Payment →
+        </button>
+      </div>
+
+    </div>
+  </form>
+
+</div>
+</main>
+
+<footer class="footer">
+  <div class="container">© {% now "Y" %} College Utility Portal</div>
+</footer>
+
+<script>
+  const fileInput = document.getElementById("file-upload");
+  const previewBox = document.getElementById("previewBox");
+  const fileName   = document.getElementById("fileName");
+  const fileSize   = document.getElementById("fileSize");
+  const confirmCheck = document.getElementById("confirmCheck");
+  const submitBtn  = document.getElementById("submitBtn");
+
+  fileInput.addEventListener("change", function() {
+    const file = this.files[0];
+    if (!file) return;
+    fileName.textContent = file.name;
+    fileSize.textContent = (file.size / 1024).toFixed(1) + " KB";
+    previewBox.style.display = "block";
+    confirmCheck.checked = false;
+    submitBtn.disabled = true;
+  });
+
+  confirmCheck.addEventListener("change", function() {
+    submitBtn.disabled = !this.checked;
+  });
+
+  function bindOptions(containerId, hiddenId) {
+    const container = document.getElementById(containerId);
+    const hidden = document.getElementById(hiddenId);
+    container.querySelectorAll(".option-button").forEach(btn => {
+      btn.addEventListener("click", () => {
+        container.querySelectorAll(".option-button").forEach(b => b.classList.remove("selected"));
+        btn.classList.add("selected");
+        hidden.value = btn.dataset.value;
+      });
+    });
+  }
+
+  bindOptions("color-options", "color_mode");
+  bindOptions("paper-options", "paper_size");
+  bindOptions("side-options",  "print_side");
+</script>
+
+</body>
+</html>

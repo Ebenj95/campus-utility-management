@@ -1,0 +1,223 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><title>College Repro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+    <style>
+        .repro-top-bar{background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;padding:1.1rem 0;position:sticky;top:0;z-index:200;}
+        .repro-top-bar .container{display:flex;justify-content:space-between;align-items:center;gap:0.75rem;}
+        .repro-top-bar a{color:white;text-decoration:none;font-weight:600;font-size:0.9rem;}
+        .repro-top-bar h1{font-size:1.25rem;font-weight:700;}
+        .preview-container{margin-top:12px;display:none;}
+        .preview-frame{width:100%;height:260px;border:1px solid #ddd;border-radius:8px;background:#f9fafb;}
+        .preview-img{width:100%;max-height:260px;object-fit:contain;border:1px solid #ddd;border-radius:8px;display:block;}
+        .preview-text-box{width:100%;height:200px;border:1px solid #ddd;border-radius:8px;padding:10px;font-family:monospace;font-size:0.8rem;overflow-y:auto;background:#f9fafb;white-space:pre-wrap;word-break:break-all;}
+        .preview-generic{display:flex;align-items:center;justify-content:center;flex-direction:column;height:120px;border:1px dashed #d1d5db;border-radius:8px;color:#6b7280;font-size:0.9rem;gap:8px;background:#f9fafb;}
+        .file-type-badge{display:inline-block;background:#e0e7ff;color:#3730a3;border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:700;text-transform:uppercase;}
+        #fileName{font-size:0.85rem;color:#374151;margin-top:6px;font-weight:500;}
+        .confirm-row{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:0.9rem;}
+        .option-button{transition:transform 0.18s cubic-bezier(.34,1.56,.64,1),box-shadow 0.18s,background 0.18s,color 0.18s !important;}
+        .option-button:hover:not(.selected){transform:scale(1.045);box-shadow:0 4px 14px rgba(99,102,241,0.18);border-color:#6366f1 !important;color:#6366f1;cursor:pointer;}
+        .option-button.selected{transform:scale(1.02);}
+        .form-select{transition:border-color 0.2s,box-shadow 0.2s;}
+        .form-select:hover{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.1);}
+        /* Bell */
+        .notif-wrap{position:relative;display:inline-flex;align-items:center;}
+        .notif-btn{background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);color:white;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.15rem;transition:background 0.18s;position:relative;}
+        .notif-btn:hover{background:rgba(255,255,255,0.30);}
+        .notif-dot{position:absolute;top:-2px;right:-2px;background:#ef4444;color:white;border-radius:50%;width:18px;height:18px;font-size:0.62rem;font-weight:800;display:flex;align-items:center;justify-content:center;animation:pulse-dot 2s infinite;}
+        @keyframes pulse-dot{0%,100%{transform:scale(1);}50%{transform:scale(1.2);}}
+        .notif-dropdown{position:absolute;top:calc(100% + 10px);right:0;width:320px;background:white;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,0.18);z-index:9999;display:none;overflow:hidden;border:1px solid #e5e7eb;}
+        .notif-dropdown.open{display:block;}
+        .notif-dropdown-head{padding:0.9rem 1.1rem;background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;font-weight:700;font-size:0.88rem;display:flex;justify-content:space-between;align-items:center;}
+        .notif-dropdown-head span{opacity:0.85;font-size:0.75rem;}
+        .notif-list{max-height:340px;overflow-y:auto;}
+        .notif-item{display:flex;gap:0.7rem;align-items:flex-start;padding:0.75rem 1.1rem;border-bottom:1px solid #f3f4f6;text-decoration:none;transition:background 0.15s;}
+        .notif-item:last-child{border-bottom:none;}
+        .notif-item:hover{background:#f5f3ff;}
+        .notif-item-icon{font-size:1.25rem;flex-shrink:0;margin-top:2px;}
+        .notif-item-body{flex:1;}
+        .notif-item-msg{font-size:0.82rem;color:#1f2937;font-weight:600;line-height:1.4;}
+        .notif-item-sub{font-size:0.72rem;color:#9ca3af;margin-top:2px;}
+        .notif-status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:6px;}
+        .dot-pending{background:#6366f1;}.dot-printing{background:#f59e0b;}.dot-done{background:#22c55e;}
+        .dot-ready{background:#f59e0b;}.dot-completed{background:#22c55e;}.dot-cancelled{background:#ef4444;}
+        .notif-empty{padding:2rem;text-align:center;color:#9ca3af;font-size:0.85rem;}
+    </style>
+</head>
+<body>
+
+<header class="repro-top-bar">
+    <div class="container">
+        <a href="{% url 'home' %}">← Home</a>
+        <h1>🖨️ College Repro</h1>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+            <a href="{% url 'orders' %}" style="color:white;text-decoration:none;font-weight:600;font-size:0.88rem;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);padding:0.38rem 0.85rem;border-radius:20px;transition:background 0.18s;" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">📥 Order History</a>
+            <div class="notif-wrap">
+                <button class="notif-btn" id="notif-btn" aria-label="Notifications">
+                    🔔{% if notif_count %}<span class="notif-dot">{{ notif_count }}</span>{% endif %}
+                </button>
+                <div class="notif-dropdown" id="notif-dropdown">
+                    <div class="notif-dropdown-head">🔔 Order Updates <span>{{ notif_count }}</span></div>
+                    <div class="notif-list">
+                        {% for n in notifications %}
+                        <a href="{{ n.url }}" class="notif-item">
+                            <span class="notif-item-icon">{{ n.icon }}</span>
+                            <div class="notif-item-body"><div class="notif-item-msg">{{ n.message }}</div><div class="notif-item-sub">{{ n.order_number }}</div></div>
+                            <span class="notif-status-dot dot-{{ n.status }}"></span>
+                        </a>
+                        {% empty %}<div class="notif-empty">No orders yet</div>{% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- SIDEBAR -->
+<input type="checkbox" id="menu-toggle" class="menu-toggle-checkbox">
+<div class="hamburger-container">
+    <label for="menu-toggle" class="hamburger-btn" aria-label="Open menu">
+        <span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span>
+    </label>
+</div>
+<nav class="side-menu">
+    <div class="menu-header">
+        <h3 class="menu-title">🎓 Campus Portal</h3>
+        <p style="color:rgba(255,255,255,0.85);font-size:0.82rem;margin-top:4px;">{{ user.username }}</p>
+    </div>
+    <div class="menu-nav">
+        <a href="{% url 'home' %}">🏠 Home</a>
+        <a href="{% url 'repro' %}">🖨️ Repro Services</a>
+        <a href="{% url 'store_home' %}">🛒 College Store</a>
+        <a href="{% url 'my_orders_combined' %}">📦 My Orders</a>
+        <a href="{% url 'about' %}">ℹ️ About</a>
+        <div style="padding:1rem 1.25rem;border-top:1px solid #f3f4f6;margin-top:0.5rem;">
+            <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+                <button type="submit" style="width:100%;padding:0.65rem;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;">🚪 Logout</button>
+            </form>
+        </div>
+    </div>
+</nav>
+<label for="menu-toggle" class="menu-overlay"></label>
+
+<div class="container">
+    <div class="hero-banner repro-hero">
+        <h2 class="hero-title">Professional Reprography Services</h2>
+        <p class="hero-description">Fast, reliable, and affordable printing solutions for all your academic needs.</p>
+    </div>
+</div>
+
+
+
+<main class="page-content">
+    {% if messages %}
+    <div style="margin-bottom:1rem;">
+        {% for message in messages %}
+        <div style="padding:12px 16px;border-radius:8px;background:{% if message.tags == 'error' %}#fee2e2{% else %}#dcfce7{% endif %};color:{% if message.tags == 'error' %}#991b1b{% else %}#065f46{% endif %};font-weight:600;border:1px solid {% if message.tags == 'error' %}#fca5a5{% else %}#86efac{% endif %};margin-bottom:8px;">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="container">
+        <form method="POST" enctype="multipart/form-data" id="repro-form">
+            {% csrf_token %}
+            <div class="repro-grid">
+                <!-- Upload Card -->
+                <div class="repro-card">
+                    <div class="repro-card-header"><span class="repro-icon-header">📤</span><h3 class="repro-card-title">Upload Document</h3></div>
+                    <div class="upload-area">
+                        <input type="file" id="file-upload" name="document" class="file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.odt,.ods,.odp,.rtf,.csv,.png,.jpg,.jpeg" required>
+                        <label for="file-upload" class="upload-label">
+                            <div class="upload-icon">📁</div>
+                            <p class="upload-title">Drop your file here or click to browse</p>
+                            <p class="upload-subtitle">PDF, Word, Excel, PowerPoint, Images, TXT, RTF, CSV<br><strong style="color:#ef4444;">ZIP files not accepted</strong></p>
+                        </label>
+                    </div>
+                    <div id="previewContainer" class="preview-container">
+                        <p id="fileName"></p>
+                        <iframe id="pdfPreview" class="preview-frame" style="display:none;"></iframe>
+                        <img id="imgPreview" class="preview-img" style="display:none;" alt="preview">
+                        <div id="textPreview" class="preview-text-box" style="display:none;"></div>
+                        <div id="genericPreview" class="preview-generic" style="display:none;">
+                            <span style="font-size:2.5rem;" id="genericIcon">📄</span>
+                            <span id="genericMsg"></span>
+                            <span class="file-type-badge" id="genericExt"></span>
+                        </div>
+                        <label class="confirm-row"><input type="checkbox" id="confirmCheck" required> I confirm this is the correct file</label>
+                    </div>
+                </div>
+                <!-- Instructions Card -->
+                <div class="repro-card">
+                    <div class="repro-card-header"><span class="repro-icon-header">🖨️</span><h3 class="repro-card-title">Print Instructions</h3></div>
+                    <div class="print-form">
+                        <div class="form-group"><label class="form-label">Number of Copies</label><input type="number" name="copies" min="1" value="1" class="form-input" required></div>
+                        <div class="form-group">
+                            <label class="form-label">Color Mode</label>
+                            <div class="option-grid" id="color-options">
+                                <div class="option-button selected" data-value="bw"><span>Black &amp; White</span><span class="option-price">(₹2/page)</span></div>
+                                <div class="option-button" data-value="color"><span>Color</span><span class="option-price">(₹10/page)</span></div>
+                            </div>
+                            <input type="hidden" name="color_mode" id="color_mode" value="bw">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Paper Size</label>
+                            <div class="option-grid" id="paper-options">
+                                <div class="option-button selected" data-value="A4">A4</div>
+                                <div class="option-button" data-value="A3">A3</div>
+                            </div>
+                            <input type="hidden" name="paper_size" id="paper_size" value="A4">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Print Side</label>
+                            <div class="option-grid" id="side-options">
+                                <div class="option-button selected" data-value="single">Single Sided</div>
+                                <div class="option-button" data-value="double">Double Sided</div>
+                            </div>
+                            <input type="hidden" name="print_side" id="print_side" value="single">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Binding (Optional)</label>
+                            <select name="binding" class="form-select">
+                                <option value="none">No Binding</option>
+                                <option value="spiral">Spiral Binding (+₹30)</option>
+                                <option value="thermal">Thermal Binding (+₹50)</option>
+                                <option value="hardcover">Hardcover Binding (+₹100)</option>
+                            </select>
+                        </div>
+                        <div class="form-group"><label class="form-label">Special Instructions (Optional)</label><textarea name="instructions" class="form-textarea" rows="3" placeholder="Any special requirements..."></textarea></div>
+                        <button type="submit" class="submit-button" id="submitBtn" disabled>Submit Order</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</main>
+
+<script>
+(function(){
+    var fi=document.getElementById("file-upload"),pc=document.getElementById("previewContainer"),fne=document.getElementById("fileName"),cc=document.getElementById("confirmCheck"),sb=document.getElementById("submitBtn"),pp=document.getElementById("pdfPreview"),ip=document.getElementById("imgPreview"),tp=document.getElementById("textPreview"),gp=document.getElementById("genericPreview"),gi=document.getElementById("genericIcon"),gm=document.getElementById("genericMsg"),ge=document.getElementById("genericExt");
+    var ICONS={".doc":"📝",".docx":"📝",".odt":"📝",".rtf":"📝",".ppt":"📊",".pptx":"📊",".odp":"📊",".xls":"📈",".xlsx":"📈",".ods":"📈",".csv":"📈",".txt":"📃"};
+    function hideAll(){[pp,ip,tp,gp].forEach(function(e){e.style.display="none";});}
+    fi&&fi.addEventListener("change",function(){
+        var file=this.files[0];if(!file)return;
+        var ext=file.name.substring(file.name.lastIndexOf(".")).toLowerCase(),blobUrl=URL.createObjectURL(file);
+        hideAll();cc.checked=false;sb.disabled=true;pc.style.display="block";
+        fne.textContent="📎 "+file.name+" ("+(file.size/1024).toFixed(1)+" KB)";
+        if(ext===".pdf"){pp.src=blobUrl;pp.style.display="block";}
+        else if([".png",".jpg",".jpeg",".gif",".webp",".bmp"].includes(ext)){ip.src=blobUrl;ip.style.display="block";}
+        else if([".txt",".csv",".rtf"].includes(ext)){var r=new FileReader();r.onload=function(e){tp.textContent=e.target.result.substring(0,3000)+(e.target.result.length>3000?"\n…(truncated)":"");tp.style.display="block";};r.readAsText(file);}
+        else{gi.textContent=ICONS[ext]||"📄";ge.textContent=ext.replace(".","");gm.textContent="Preview not available for "+ext.toUpperCase()+" — file selected correctly.";gp.style.display="flex";}
+    });
+    cc&&cc.addEventListener("change",function(){sb.disabled=!this.checked;});
+    function bindOptions(cid,hid){var c=document.getElementById(cid),h=document.getElementById(hid);if(!c||!h)return;c.querySelectorAll(".option-button").forEach(function(btn){btn.addEventListener("click",function(){c.querySelectorAll(".option-button").forEach(function(b){b.classList.remove("selected");});btn.classList.add("selected");h.value=btn.dataset.value;});});}
+    bindOptions("color-options","color_mode");bindOptions("paper-options","paper_size");bindOptions("side-options","print_side");
+    // Bell
+    var nb=document.getElementById('notif-btn'),nd=document.getElementById('notif-dropdown');
+    if(nb&&nd){nb.addEventListener('click',function(e){e.stopPropagation();nd.classList.toggle('open');});document.addEventListener('click',function(e){if(!nd.contains(e.target)&&e.target!==nb)nd.classList.remove('open');});}
+})();
+</script>
+</body>
+</html>

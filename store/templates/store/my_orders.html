@@ -1,0 +1,386 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Store Orders - College Portal</title>
+    <link rel="stylesheet" href="{% static 'printing/style.css' %}">
+    <style>
+        .page-header-store {
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            color: white; padding: 1.25rem 0;
+        }
+        .page-header-store .container { display: flex; justify-content: space-between; align-items: center; }
+        .page-header-store a { color: white; text-decoration: none; font-weight: 600; }
+        .page-header-store h1 { font-size: 1.5rem; }
+
+        .order-card {
+            background: white;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 1.5rem;
+            border-left: 4px solid #a855f7;
+        }
+        .order-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.25rem 1.5rem;
+            background: #fafafa;
+            border-bottom: 1px solid #f3f4f6;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .order-num { font-weight: 700; color: #1f2937; font-size: 0.95rem; }
+        .order-date { font-size: 0.8rem; color: #9ca3af; }
+        .status-pill {
+            padding: 0.3rem 0.875rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        .status-pending { background: #e0e7ff; color: #3730a3; }
+        .status-ready { background: #fef3c7; color: #92400e; }
+        .status-completed { background: #dcfce7; color: #166534; }
+        .status-cancelled { background: #fee2e2; color: #991b1b; }
+
+        .order-items { padding: 1rem 1.5rem; }
+        .order-item-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 0.9rem;
+        }
+        .order-item-row:last-child { border-bottom: none; }
+        .order-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: #f9fafb;
+            border-top: 1px solid #f3f4f6;
+        }
+        .order-total-label { font-size: 0.85rem; color: #6b7280; }
+        .order-total-amount { font-size: 1.25rem; font-weight: 700; color: #1f2937; }
+        .alert { padding: 0.75rem 1rem; border-radius: 8px; margin-bottom: 1rem; font-weight: 500; }
+        .alert-success { background: #dcfce7; color: #166534; }
+        .alert-error { background: #fee2e2; color: #991b1b; }
+        .cancel-btn {
+            padding: 0.35rem 0.875rem;
+            background: #fee2e2; color: #991b1b;
+            border: 1.5px solid #fca5a5; border-radius: 8px;
+            font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            transition: all 0.15s;
+        }
+        .cancel-btn:hover { background: #ef4444; color: white; border-color: #ef4444; }
+        .cancel-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+        .cancel-timer { font-size: 0.72rem; color: #9ca3af; margin-top: 0.2rem; text-align: right; }
+        .payment-badge {
+            font-size: 0.72rem; padding: 0.15rem 0.55rem;
+            border-radius: 10px; font-weight: 600;
+            background: #dcfce7; color: #166534; margin-left: 0.4rem;
+        }
+        .payment-badge.refunded { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body>
+
+<header class="page-header-store">
+    <div class="container">
+        <a href="{% url 'store_home' %}">← Store</a>
+        <h1>📦 My Orders</h1>
+        <a href="{% url 'cart' %}">🛒 Cart</a>
+    </div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-success">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    {% if orders %}
+        {% for order in orders %}
+        <div class="order-card" data-order-id="{{ order.id }}">
+            <div class="order-head">
+                <div>
+                    <div class="order-num">🧾 {{ order.order_number }}</div>
+                    <div class="order-date">{{ order.created_at|date:"d M Y, h:i A" }}</div>
+                </div>
+                <span class="status-pill status-{{ order.status }}">
+                    {% if order.status == 'pending' %}⏳ Pending
+                    {% elif order.status == 'ready' %}📦 Ready for Pickup
+                    {% elif order.status == 'completed' %}✅ Completed
+                    {% elif order.status == 'cancelled' %}❌ Cancelled
+                    {% endif %}
+                </span>
+            </div>
+            <div class="order-items">
+                {% for item in order.items.all %}
+                <div class="order-item-row">
+                    <span>{{ item.product_name }} × {{ item.quantity }}</span>
+                    <span style="font-weight:600;">₹{{ item.subtotal }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="order-footer" style="flex-wrap:wrap;gap:0.5rem;">
+                <div>
+                    <span class="order-total-label">
+                        {% if order.payment_status == 'refunded' %}Total Refunded{% else %}Total Paid{% endif %}
+                    </span>
+                    <div style="display:flex;align-items:center;gap:0.25rem;">
+                        <span class="order-total-amount">₹{{ order.total_amount }}</span>
+                        {% if order.payment_method %}
+                        <span class="payment-badge {% if order.payment_status == 'refunded' %}refunded{% endif %}">
+                            {% if order.payment_status == 'refunded' %}↩ Refunded{% else %}✅ {{ order.payment_method }}{% endif %}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if order.status == 'pending' %}
+                <div style="text-align:right;">
+                    <form method="post" action="{% url 'cancel_order' order.id %}" onsubmit="return confirm('Cancel order {{ order.order_number }}? Stock will be restored.')">
+                        {% csrf_token %}
+                        <button type="submit"
+                            class="cancel-btn"
+                            id="cancel-btn-{{ order.id }}"
+                            data-created="{{ order.created_at.isoformat }}"
+                            {% if not order.can_cancel %}disabled title="Cancellation window (3 min) has passed"{% endif %}>
+                            ✕ Cancel Order
+                        </button>
+                    </form>
+                    <div class="cancel-timer" id="timer-{{ order.id }}">
+                        {% if order.can_cancel %}Computing…{% else %}Window expired{% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-icon">📦</div>
+        <div class="empty-title">No orders yet</div>
+        <div class="empty-text">Head to the store and grab what you need!</div>
+        <a href="{% url 'store_home' %}" class="empty-button">Go to Store</a>
+    </div>
+    {% endif %}
+
+</div>
+</main>
+
+<footer class="footer">
+    <div class="container">
+        <p>&copy; {% now "Y" %} College Utility Portal. All rights reserved.</p>
+    </div>
+</footer>
+
+<script>
+/* ── Store Live Refresh ──────────────────────────────────────────────────────
+   Polls /store/api/state/ every 4s.
+   On change: updates product cards and order status pills in-place.
+   No full page reload — zero flicker.
+────────────────────────────────────────────────────────────────────────────── */
+(function () {
+    var POLL_MS   = 4000;
+    var API_URL   = "/store/api/state/";
+    var lastHash  = null;
+    var toastTimer = null;
+
+    /* ── Toast ── */
+    function showToast(msg) {
+        var t = document.getElementById("lr-toast");
+        if (!t) {
+            t = document.createElement("div");
+            t.id = "lr-toast";
+            t.style.cssText = [
+                "position:fixed","bottom:1.5rem","left:50%",
+                "transform:translateX(-50%) translateY(80px)",
+                "background:#1f2937","color:white",
+                "padding:0.55rem 1.25rem","border-radius:24px",
+                "font-size:0.82rem","font-weight:600",
+                "box-shadow:0 4px 16px rgba(0,0,0,0.22)",
+                "z-index:9999","transition:transform 0.3s ease, opacity 0.3s ease",
+                "opacity:0","pointer-events:none"
+            ].join(";");
+            document.body.appendChild(t);
+        }
+        t.textContent = msg;
+        clearTimeout(toastTimer);
+        // slide in
+        requestAnimationFrame(function(){
+            t.style.transform = "translateX(-50%) translateY(0)";
+            t.style.opacity   = "1";
+        });
+        toastTimer = setTimeout(function(){
+            t.style.transform = "translateX(-50%) translateY(80px)";
+            t.style.opacity   = "0";
+        }, 2800);
+    }
+
+    /* ── Update product cards ── */
+    function applyProducts(products) {
+        var changed = false;
+        products.forEach(function(p) {
+            /* find card by data-product-id attribute */
+            var card = document.querySelector('[data-product-id="' + p.id + '"]');
+            if (!card) return;
+
+            /* stock badge */
+            var badge = card.querySelector(".stock-badge");
+            if (badge) {
+                var newBadge = "";
+                if (p.stock === 0) {
+                    newBadge = '<span class="stock-badge stock-out">Out of Stock</span>';
+                } else if (p.stock <= 5) {
+                    newBadge = '<span class="stock-badge stock-low">Only ' + p.stock + ' left</span>';
+                } else {
+                    newBadge = '<span class="stock-badge stock-in">In Stock (' + p.stock + ')</span>';
+                }
+                if (badge.outerHTML !== newBadge) {
+                    badge.outerHTML = newBadge;
+                    changed = true;
+                }
+            }
+
+            /* add-to-cart button */
+            var btn = card.querySelector(".btn-cart");
+            if (btn) {
+                var addUrl = btn.dataset.addUrl || btn.getAttribute("href") || "";
+                if (p.stock === 0) {
+                    if (!btn.classList.contains("disabled")) {
+                        btn.outerHTML = '<span class="btn-cart disabled">Out of Stock</span>';
+                        changed = true;
+                    }
+                } else {
+                    if (btn.classList.contains("disabled") && addUrl) {
+                        btn.outerHTML = '<a href="' + addUrl + '" class="btn-cart">🛒 Add to Cart</a>';
+                        changed = true;
+                    }
+                }
+            }
+
+            /* price */
+            var priceEl = card.querySelector(".product-price");
+            if (priceEl) {
+                var newPrice = "₹" + parseFloat(p.price).toFixed(2).replace(/\.00$/, "");
+                if (priceEl.textContent.trim() !== newPrice) {
+                    priceEl.textContent = newPrice;
+                    changed = true;
+                }
+            }
+        });
+        return changed;
+    }
+
+    /* ── Update order status pills ── */
+    function applyOrders(orderStatuses) {
+        var changed = false;
+        var LABELS = {
+            pending:   "⏳ Pending",
+            ready:     "📦 Ready for Pickup",
+            completed: "✅ Completed",
+            cancelled: "❌ Cancelled"
+        };
+        var CLASSES = {
+            pending:   "status-pending",
+            ready:     "status-ready",
+            completed: "status-completed",
+            cancelled: "status-cancelled"
+        };
+        /* also handle spill classes (combined orders page) */
+        var SPILL_CLASSES = {
+            pending:   "spill-pending",
+            ready:     "spill-ready",
+            completed: "spill-completed",
+            cancelled: "spill-cancelled"
+        };
+        orderStatuses.forEach(function(o) {
+            /* status-pill variant (store/my_orders.html) */
+            var pill = document.querySelector('[data-order-id="' + o.id + '"] .status-pill');
+            if (pill) {
+                var wantClass = CLASSES[o.status];
+                if (!pill.classList.contains(wantClass)) {
+                    pill.className = "status-pill " + wantClass;
+                    pill.textContent = LABELS[o.status] || o.status;
+                    changed = true;
+                }
+            }
+            /* spill variant (my_orders combined) */
+            var spill = document.querySelector('[data-order-id="' + o.id + '"] .spill');
+            if (spill) {
+                var wantSpill = SPILL_CLASSES[o.status];
+                if (!spill.classList.contains(wantSpill)) {
+                    spill.className = "spill " + wantSpill;
+                    spill.textContent = LABELS[o.status] || o.status;
+                    changed = true;
+                }
+            }
+        });
+        return changed;
+    }
+
+    /* ── Poll ── */
+    function poll() {
+        fetch(API_URL, {credentials: "same-origin"})
+            .then(function(r){ return r.json(); })
+            .then(function(resp) {
+                if (lastHash === null) {
+                    lastHash = resp.hash;
+                    return;
+                }
+                if (resp.hash === lastHash) return;
+
+                lastHash = resp.hash;
+                var productChanged = applyProducts(resp.data.products || []);
+                var orderChanged   = applyOrders(resp.data.order_statuses || []);
+
+                if (productChanged || orderChanged) {
+                    showToast("🔄 Store updated");
+                }
+            })
+            .catch(function(){
+                /* silently ignore network errors — will retry next tick */
+            });
+    }
+
+    /* start polling after first tick */
+    setTimeout(function(){
+        poll();
+        setInterval(poll, POLL_MS);
+    }, 1000);
+})();
+
+/* ── Cancel countdown timers ── */
+(function(){
+    var WINDOW_MS = 3 * 60 * 1000; // 3 minutes
+    function tick() {
+        document.querySelectorAll('[data-created]').forEach(function(btn) {
+            var orderId = btn.id.replace('cancel-btn-', '');
+            var created = new Date(btn.dataset.created);
+            var elapsed = Date.now() - created.getTime();
+            var remaining = WINDOW_MS - elapsed;
+            var timerEl = document.getElementById('timer-' + orderId);
+            if (remaining <= 0) {
+                btn.disabled = true;
+                btn.title = 'Cancellation window has passed';
+                if (timerEl) timerEl.textContent = 'Window expired';
+            } else {
+                var mins = Math.floor(remaining / 60000);
+                var secs = Math.floor((remaining % 60000) / 1000);
+                if (timerEl) timerEl.textContent = 'Cancel within ' + mins + ':' + (secs < 10 ? '0' : '') + secs;
+            }
+        });
+    }
+    tick();
+    setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>
