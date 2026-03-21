@@ -36,7 +36,11 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
+
+
 
 TEMPLATES = [
     {
@@ -88,3 +92,7 @@ DEFAULT_FROM_EMAIL = 'adithyan1771@gmail.com'
 # ── Password Reset Token Expiry ──────────────────────────────────────────────
 # Token expires after 5 minutes (expressed as number of seconds)
 PASSWORD_RESET_TIMEOUT = 300  # 5 minutes
+
+STATIC_URL = '/static/'
+
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
