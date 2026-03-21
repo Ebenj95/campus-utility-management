@@ -167,20 +167,23 @@ def download_document(request, pk):
 # ── Customer views ──────────────────────────────────────────────
 @login_required
 def home(request):
-    if is_repro_admin(request.user):
-        return redirect("repro_admin_dashboard")
-    if is_store_admin(request.user):
-        return redirect("store_admin_dashboard")
-    if request.user.is_superuser:
+    user = request.user
+    if user.is_superuser:
         return redirect("super_admin_dashboard")
-    repro_orders = PrintOrder.objects.filter(user=request.user).order_by("-id")[:5]
-    store_orders = StoreOrder.objects.filter(user=request.user).prefetch_related("items").order_by("-created_at")[:5]
-    notifications = get_user_notifications(request.user)
+    if is_store_admin(user):
+        return redirect("store_admin_dashboard")
+    if is_repro_admin(user):
+        return redirect("repro_admin_dashboard")
+
+    # Customer view
+    repro_orders = PrintOrder.objects.filter(user=user).order_by("-id")[:5]
+    store_orders = StoreOrder.objects.filter(user=user).prefetch_related("items").order_by("-created_at")[:5]
+    notifications = get_user_notifications(user)
     return render(request, "printing/main.html", {
         "repro_orders": repro_orders,
         "store_orders": store_orders,
         "notifications": notifications,
-        "notif_count": _notif_count(request.user, notifications),
+        "notif_count": _notif_count(user, notifications),
     })
 
 @login_required
@@ -802,12 +805,12 @@ class CustomLoginView(LoginView):
 
     def get_success_url(self):
         user = self.request.user
-        if is_repro_admin(user):
-            return reverse("repro_admin_dashboard")
-        if is_store_admin(user):
-            return reverse("store_admin_dashboard")
         if user.is_superuser:
             return reverse("super_admin_dashboard")
+        if is_store_admin(user):
+            return reverse("store_admin_dashboard")
+        if is_repro_admin(user):
+            return reverse("repro_admin_dashboard")
         return reverse("home")
 
 def about(request):
