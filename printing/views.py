@@ -1,22 +1,20 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .models import PrintOrder, NotificationSeen
+from store.models import StoreOrder, CartItem
 from django.http import FileResponse, JsonResponse
-from django.shortcuts import get_object_or_404
 from django.utils import timezone
+from django.urls import reverse
+from django.contrib.auth.models import User, Group
+from django.contrib.auth.hashers import make_password
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.contrib.auth.views import LoginView
 from pypdf import PdfReader, PdfWriter
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 import io, os
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.contrib.auth.views import LoginView
-from django.urls import reverse
-from django.contrib.auth.models import User, Group
-from django.contrib.auth.hashers import make_password
-from store.models import StoreOrder, CartItem
 
-
-# ── Role helpers ───────────────────────────────────────────────────────────────
+# ── Role helpers ──────────────────────────────────────────────
 def is_store_admin(user):
     return user.groups.filter(name="store_admin").exists() or user.is_superuser
 
@@ -26,28 +24,21 @@ def is_repro_admin(user):
 def is_customer(user):
     return not (is_store_admin(user) or is_repro_admin(user))
 
+# ── Allowed file types ────────────────────────────────────────
 ALLOWED_EXTENSIONS = {
     ".pdf", ".doc", ".docx", ".ppt", ".pptx",
     ".xls", ".xlsx", ".txt", ".odt", ".ods", ".odp",
     ".rtf", ".csv", ".png", ".jpg", ".jpeg",
 }
 
-
-# ── Notification helpers ───────────────────────────────────────────────────────
-
+# ── Notification helpers ───────────────────────────────────────
 def _get_seen_at(user):
-    """Return the datetime the user last clicked the bell, or None."""
     try:
         return user.notif_seen.seen_at
     except NotificationSeen.DoesNotExist:
         return None
 
-
 def get_user_notifications(user):
-    """
-    For regular users: their last 10 repro+store orders as status notifications.
-    Each note includes is_new=True if created after the user last saw the bell.
-    """
     seen_at = _get_seen_at(user)
     notes = []
     for o in PrintOrder.objects.filter(user=user).order_by("-id")[:10]:
@@ -77,9 +68,7 @@ def get_user_notifications(user):
         })
     return notes
 
-
 def get_repro_admin_notifications(limit=20):
-    """Pending + printing repro orders for repro admin bell."""
     notes = []
     for o in PrintOrder.objects.filter(status__in=["pending", "printing"]).order_by("-id")[:limit]:
         label = {"pending": "⏳ Pending", "printing": "🖨️ Printing"}.get(o.status)
@@ -94,9 +83,7 @@ def get_repro_admin_notifications(limit=20):
         })
     return notes
 
-
 def get_store_admin_notifications(limit=20):
-    """Pending store orders for store admin bell."""
     notes = []
     for o in StoreOrder.objects.filter(status="pending").order_by("-created_at")[:limit]:
         notes.append({
@@ -110,37 +97,22 @@ def get_store_admin_notifications(limit=20):
         })
     return notes
 
-
 def _notif_count(user, notifications):
-    """
-    For ALL users: only notifications newer than seen_at count toward the red dot.
-    - Regular users: orders created after seen_at
-    - Admins: pending orders created after seen_at (so clicking the bell clears the dot
-      permanently until a genuinely new order comes in)
-    """
     seen_at = _get_seen_at(user)
     if seen_at is None:
         return len(notifications)
     if is_customer(user):
         return sum(1 for n in notifications if n.get("is_new"))
-    # For admins: count pending orders created after they last viewed the bell
-    from store.models import StoreOrder
     new_store = StoreOrder.objects.filter(status="pending", created_at__gt=seen_at).count()
-    new_repro  = PrintOrder.objects.filter(status__in=["pending", "printing"], created_at__gt=seen_at).count()
-    if user.groups.filter(name="store_admin").exists() or user.is_superuser:
+    new_repro = PrintOrder.objects.filter(status__in=["pending", "printing"], created_at__gt=seen_at).count()
+    if is_store_admin(user):
         return new_store
-    if user.groups.filter(name="repro_admin").exists():
+    if is_repro_admin(user):
         return new_repro
     return 0
 
-
 @login_required
 def mark_notifications_seen(request):
-    """
-    POST endpoint called silently when the user opens the bell.
-    Saves timezone.now() as seen_at so the dot disappears permanently
-    until a genuinely new notification arrives.
-    """
     if request.method == "POST":
         NotificationSeen.objects.update_or_create(
             user=request.user,
@@ -149,8 +121,7 @@ def mark_notifications_seen(request):
         return JsonResponse({"ok": True})
     return JsonResponse({"ok": False}, status=405)
 
-
-# ── PDF footer stamping ────────────────────────────────────────────────────────
+# ── PDF stamping ──────────────────────────────────────────────
 def _stamp_footer_on_pdf(pdf_bytes, order_number, username, timestamp_str):
     reader = PdfReader(io.BytesIO(pdf_bytes))
     writer = PdfWriter()
@@ -175,7 +146,6 @@ def _stamp_footer_on_pdf(pdf_bytes, order_number, username, timestamp_str):
     out.seek(0)
     return out
 
-
 @login_required
 @user_passes_test(is_repro_admin)
 def download_document(request, pk):
@@ -194,21 +164,18 @@ def download_document(request, pk):
     else:
         return FileResponse(open(file_path, "rb"), as_attachment=True, filename=safe_name)
 
-
-# ── Customer views ─────────────────────────────────────────────────────────────
+# ── Customer views ──────────────────────────────────────────────
 @login_required
 def home(request):
-    if request.user.groups.filter(name="repro_admin").exists():
+    if is_repro_admin(request.user):
         return redirect("repro_admin_dashboard")
-    if request.user.groups.filter(name="store_admin").exists():
+    if is_store_admin(request.user):
         return redirect("store_admin_dashboard")
     if request.user.is_superuser:
         return redirect("super_admin_dashboard")
-
     repro_orders = PrintOrder.objects.filter(user=request.user).order_by("-id")[:5]
     store_orders = StoreOrder.objects.filter(user=request.user).prefetch_related("items").order_by("-created_at")[:5]
     notifications = get_user_notifications(request.user)
-
     return render(request, "printing/main.html", {
         "repro_orders": repro_orders,
         "store_orders": store_orders,
@@ -216,14 +183,10 @@ def home(request):
         "notif_count": _notif_count(request.user, notifications),
     })
 
-
 @login_required
 def repro(request):
-    if request.user.groups.filter(name="store_admin").exists():
+    if is_store_admin(request.user) or is_repro_admin(request.user):
         return redirect("home")
-    if request.user.groups.filter(name="repro_admin").exists():
-        return redirect("home")
-
     if request.method == "POST":
         uploaded = request.FILES.get("document")
         if uploaded:
@@ -244,24 +207,20 @@ def repro(request):
         )
         messages.success(request, "✅ Your print order has been submitted!")
         return redirect("repro")
-
     notifications = get_user_notifications(request.user)
     return render(request, "printing/repro.html", {
         "notifications": notifications,
         "notif_count": _notif_count(request.user, notifications),
     })
 
-
 @login_required
 def orders(request):
-    # Only repro orders here — used by "Order History" link from repro page
-    if request.user.groups.filter(name="store_admin").exists():
+    if is_store_admin(request.user):
         return redirect("home")
-    if request.user.is_superuser or request.user.groups.filter(name="repro_admin").exists():
+    if is_repro_admin(request.user) or request.user.is_superuser:
         qs = PrintOrder.objects.all().order_by("-id")
     else:
         qs = PrintOrder.objects.filter(user=request.user).order_by("-id")
-
     notifications = get_user_notifications(request.user) if is_customer(request.user) else []
     return render(request, "printing/orders.html", {
         "orders": qs,
@@ -269,12 +228,9 @@ def orders(request):
         "notif_count": _notif_count(request.user, notifications),
     })
 
-
 @login_required
 def my_orders_combined(request):
-    if request.user.groups.filter(name="repro_admin").exists() or \
-       request.user.groups.filter(name="store_admin").exists() or \
-       request.user.is_superuser:
+    if is_store_admin(request.user) or is_repro_admin(request.user) or request.user.is_superuser:
         return redirect("home")
     repro_orders = PrintOrder.objects.filter(user=request.user).order_by("-id")
     store_orders = StoreOrder.objects.filter(user=request.user).prefetch_related("items").order_by("-created_at")
@@ -286,19 +242,16 @@ def my_orders_combined(request):
         "notif_count": _notif_count(request.user, notifications),
     })
 
-
 @login_required
 def store(request):
     if is_repro_admin(request.user):
         return redirect("home")
     return render(request, "printing/store.html")
 
-
-# ── Repro admin ────────────────────────────────────────────────────────────────
+# ── Repro admin ──────────────────────────────────────────────
 @login_required
 def repro_admin_dashboard(request):
-    if not (request.user.is_superuser or
-            request.user.groups.filter(name="repro_admin").exists()):
+    if not (is_repro_admin(request.user)):
         return redirect("home")
     all_orders     = PrintOrder.objects.all().order_by("-id")
     print_orders   = all_orders.filter(binding="none")
@@ -313,11 +266,9 @@ def repro_admin_dashboard(request):
         "notif_count": _notif_count(request.user, notifications),
     })
 
-
 @login_required
 def update_status(request, pk):
-    if not (request.user.is_superuser or
-            request.user.groups.filter(name="repro_admin").exists()):
+    if not is_repro_admin(request.user):
         return redirect("home")
     order = PrintOrder.objects.get(pk=pk)
     if request.method == "POST":
@@ -325,18 +276,17 @@ def update_status(request, pk):
         order.save()
     return redirect("repro_admin_dashboard")
 
-
-# ── Super admin ────────────────────────────────────────────────────────────────
+# ── Super admin ──────────────────────────────────────────────
 @login_required
 def super_admin_dashboard(request):
     if not request.user.is_superuser:
         return redirect("home")
-    total_users          = User.objects.count()
+    users = User.objects.all().order_by("-id")
+    total_users          = users.count()
     total_print_orders   = PrintOrder.objects.count()
     pending_print_orders = PrintOrder.objects.filter(status="pending").count()
     total_store_orders   = StoreOrder.objects.count()
     pending_store_orders = StoreOrder.objects.filter(status="pending").count()
-    users = User.objects.all().order_by("-id")
     return render(request, "printing/super_admin_dashboard.html", {
         "total_users": total_users,
         "total_print_orders": total_print_orders,
@@ -346,7 +296,6 @@ def super_admin_dashboard(request):
         "users": users,
     })
 
-
 @login_required
 def update_user_role(request, user_id):
     if not request.user.is_superuser:
@@ -355,17 +304,16 @@ def update_user_role(request, user_id):
     if request.method == "POST":
         new_role = request.POST.get("role")
         user.groups.clear()
-        if new_role == "repro_admin":
-            user.groups.add(Group.objects.get(name="repro_admin"))
+        if new_role == "store_admin":
+            user.groups.add(Group.objects.get_or_create(name="store_admin")[0])
             user.is_staff = True
-        elif new_role == "store_admin":
-            user.groups.add(Group.objects.get(name="store_admin"))
+        elif new_role == "repro_admin":
+            user.groups.add(Group.objects.get_or_create(name="repro_admin")[0])
             user.is_staff = True
         else:
             user.is_staff = False
         user.save()
     return redirect("super_admin_dashboard")
-
 
 @login_required
 def create_user(request):
@@ -382,7 +330,6 @@ def create_user(request):
             messages.success(request, "✅ User created successfully!")
     return redirect("super_admin_dashboard")
 
-
 @login_required
 def delete_user(request, user_id):
     if not request.user.is_superuser:
@@ -391,7 +338,6 @@ def delete_user(request, user_id):
     if not user.is_superuser:
         user.delete()
     return redirect("super_admin_dashboard")
-
 
 @login_required
 def reset_password(request, user_id):
@@ -406,7 +352,6 @@ def reset_password(request, user_id):
             messages.success(request, f"✅ Password reset for {user.username}")
     return redirect("super_admin_dashboard")
 
-
 @login_required
 def update_user_email(request, user_id):
     if not request.user.is_superuser:
@@ -418,7 +363,7 @@ def update_user_email(request, user_id):
         messages.success(request, f"✅ Email updated for {user.username}")
     return redirect("super_admin_dashboard")
 
-
+# ── Login / Forgot password ───────────────────────────────────
 def forgot_password(request):
     from django.contrib.auth.tokens import default_token_generator
     from django.utils.http import urlsafe_base64_encode
@@ -432,7 +377,6 @@ def forgot_password(request):
             user = User.objects.get(username=username)
         except User.DoesNotExist:
             return redirect("forgot_password_done")
-        user.refresh_from_db()
         if not user.email or user.email.strip() == "":
             messages.error(request, f"⚠️ No email for '{username}'. Ask admin to add it.")
             return render(request, "forgot_password.html")
@@ -452,26 +396,25 @@ def forgot_password(request):
         return redirect("forgot_password_done")
     return render(request, "forgot_password.html")
 
-
 class CustomLoginView(LoginView):
     template_name = "login.html"
+
     def get_success_url(self):
         user = self.request.user
-        if user.groups.filter(name="repro_admin").exists():
+        if is_repro_admin(user):
             return reverse("repro_admin_dashboard")
-        if user.groups.filter(name="store_admin").exists():
+        if is_store_admin(user):
             return reverse("store_admin_dashboard")
         if user.is_superuser:
             return reverse("super_admin_dashboard")
         return reverse("home")
-
 
 def about(request):
     notifications = []
     notif_count = 0
     if request.user.is_authenticated and is_customer(request.user):
         notifications = get_user_notifications(request.user)
-        notif_count   = _notif_count(request.user, notifications)
+        notif_count = _notif_count(request.user, notifications)
     return render(request, "printing/about.html", {
         "notifications": notifications,
         "notif_count": notif_count,

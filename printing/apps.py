@@ -5,7 +5,7 @@ class PrintingConfig(AppConfig):
     name = 'printing'
 
     def ready(self):
-        from django.contrib.auth.models import Group # type: ignore
+        from django.db.models.signals import post_migrate
+        from django.contrib.auth.models import Group
 
-        Group.objects.get_or_create(name="Store Admin")
-        Group.objects.get_or_create(name="Repro Admin")
+        
