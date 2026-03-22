@@ -1,0 +1,253 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Super Admin Control Panel - College Utility Portal</title>
+<link rel="stylesheet" href="{% static 'printing/style.css' %}">
+</head>
+<body>
+
+<header class="page-header">
+<div class="container">
+
+<h1>Super Admin Control Panel</h1>
+<form method="post" action="{% url 'logout' %}" style="margin:0;">
+    {% csrf_token %}
+    <button type="submit" class="logout-btn">Logout</button>
+</form>
+</div>
+</header>
+
+<main class="page-content">
+<div class="container">
+
+<!-- STATS -->
+<div class="stats-container" style="grid-template-columns: repeat(5, 1fr);">
+
+<div class="stat-card primary">
+<div class="stat-label">Total Users</div>
+<div class="stat-value">{{ total_users }}</div>
+</div>
+
+<div class="stat-card success">
+<div class="stat-label">Print Orders</div>
+<div class="stat-value">{{ total_print_orders }}</div>
+</div>
+
+<div class="stat-card warning">
+<div class="stat-label">Pending Prints</div>
+<div class="stat-value">{{ pending_print_orders }}</div>
+</div>
+
+<div class="stat-card" style="background:linear-gradient(135deg,#f3e8ff,#e9d5ff);border-left:4px solid #a855f7;">
+<div class="stat-label">Store Orders</div>
+<div class="stat-value" style="color:#a855f7;">{{ total_store_orders }}</div>
+</div>
+
+<div class="stat-card" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border-left:4px solid #f59e0b;">
+<div class="stat-label">Pending Store</div>
+<div class="stat-value" style="color:#f59e0b;">{{ pending_store_orders }}</div>
+</div>
+
+</div>
+
+
+<!-- CREATE USER -->
+<div class="create-user-form">
+
+<h3>Create New User</h3>
+
+{% if messages %}
+{% for message in messages %}
+<div class="message {% if message.tags == 'error' %}error{% else %}success{% endif %}">
+{{ message }}
+</div>
+{% endfor %}
+{% endif %}
+
+<form method="post" action="{% url 'create_user' %}">
+{% csrf_token %}
+
+<div class="form-row">
+
+<input type="text" name="username" placeholder="Username" class="form-input" required>
+
+<input type="email" name="email" placeholder="Email address" class="form-input" required>
+
+<input type="password" name="password" placeholder="Password" class="form-input" required>
+
+<button type="submit" class="btn-create">Create User</button>
+
+</div>
+
+</form>
+
+</div>
+
+<div class="divider"></div>
+
+
+<!-- USERS TABLE -->
+
+<table class="orders-table">
+
+<thead>
+
+<tr>
+<th>ID</th>
+<th>Username</th>
+<th>Name</th>
+<th>Email</th>
+<th>Current Role</th>
+<th>Change Role</th>
+<th>Edit Email</th>
+<th>Reset Password</th>
+<th>Delete</th>
+</tr>
+
+</thead>
+
+<tbody>
+
+{% for user in users %}
+
+<tr>
+
+<td>#{{ user.id }}</td>
+
+<td>{{ user.username }}</td>
+
+<td>{{ user.first_name }} {{ user.last_name }}</td>
+
+<td>{{ user.email|default:"-" }}</td>
+
+<td>
+
+{% if user.is_superuser %}
+<span class="role-badge super">Super Admin</span>
+
+{% elif user.groups.first %}
+
+{% if user.groups.first.name == "repro_admin" %}
+<span class="role-badge repro">Repro Admin</span>
+
+{% elif user.groups.first.name == "store_admin" %}
+<span class="role-badge store">Store Admin</span>
+
+{% else %}
+<span class="role-badge customer">Customer</span>
+{% endif %}
+
+{% else %}
+<span class="role-badge customer">Customer</span>
+
+{% endif %}
+
+</td>
+
+
+<td>
+
+{% if not user.is_superuser %}
+
+<form method="post" action="{% url 'update_user_role' user.id %}">
+{% csrf_token %}
+
+<select name="role" class="role-select">
+<option value="customer">Customer</option>
+<option value="repro_admin">Repro Admin</option>
+<option value="store_admin">Store Admin</option>
+</select>
+
+<button type="submit" class="btn-update">Update</button>
+
+</form>
+
+{% else %}
+
+---
+
+{% endif %}
+
+</td>
+
+
+<td>
+
+{% if not user.is_superuser %}
+
+<form method="post" action="{% url 'update_user_email' user.id %}" style="display:flex;gap:0.4rem;align-items:center;">
+{% csrf_token %}
+<input type="email" name="email" value="{{ user.email }}" placeholder="email@domain.com" class="password-input" style="min-width:160px;">
+<button type="submit" class="btn-reset">💾 Save</button>
+</form>
+
+{% else %}
+
+---
+
+{% endif %}
+
+</td>
+
+
+<td>
+
+{% if not user.is_superuser %}
+
+<form method="post" action="{% url 'reset_password' user.id %}">
+{% csrf_token %}
+
+<input type="password" name="new_password" placeholder="New Password" class="password-input" required>
+
+<button type="submit" class="btn-reset">Reset</button>
+
+</form>
+
+{% else %}
+
+---
+
+{% endif %}
+
+</td>
+
+
+<td>
+
+{% if not user.is_superuser %}
+
+<a href="{% url 'delete_user' user.id %}" class="btn-delete">Delete</a>
+
+{% else %}
+
+---
+
+{% endif %}
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+</div>
+</main>
+
+
+<footer class="footer">
+<div class="container">
+
+<p>© {% now "Y" %} College Utility Portal</p>
+
+</div>
+</footer>
+
+</body>
+</html>
