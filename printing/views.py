@@ -18,10 +18,10 @@ from store.models import StoreOrder, CartItem
 
 # ── Role helpers ───────────────────────────────────────────────────────────────
 def is_store_admin(user):
-    return user.groups.filter(name="store_admin").exists() or user.is_superuser
+    return user.groups.filter(name="store_admin").exists()
 
 def is_repro_admin(user):
-    return user.groups.filter(name="repro_admin").exists() or user.is_superuser
+    return user.groups.filter(name="repro_admin").exists()
 
 def is_customer(user):
     return not (is_store_admin(user) or is_repro_admin(user))
@@ -198,23 +198,18 @@ def download_document(request, pk):
 # ── Customer views ─────────────────────────────────────────────────────────────
 @login_required
 def home(request):
-    if request.user.groups.filter(name="repro_admin").exists():
-        return redirect("repro_admin_dashboard")
-    if request.user.groups.filter(name="store_admin").exists():
-        return redirect("store_admin_dashboard")
-    if request.user.is_superuser:
+    user = request.user
+
+    if user.is_superuser:
         return redirect("super_admin_dashboard")
 
-    repro_orders = PrintOrder.objects.filter(user=request.user).order_by("-id")[:5]
-    store_orders = StoreOrder.objects.filter(user=request.user).prefetch_related("items").order_by("-created_at")[:5]
-    notifications = get_user_notifications(request.user)
+    if user.groups.filter(name="store_admin").exists():
+        return redirect("store_admin_dashboard")
 
-    return render(request, "printing/main.html", {
-        "repro_orders": repro_orders,
-        "store_orders": store_orders,
-        "notifications": notifications,
-        "notif_count": _notif_count(request.user, notifications),
-    })
+    if user.groups.filter(name="repro_admin").exists():
+        return redirect("repro_admin_dashboard")
+
+    return render(request, "printing/main.html")
 
 
 @login_required
@@ -351,19 +346,30 @@ def super_admin_dashboard(request):
 def update_user_role(request, user_id):
     if not request.user.is_superuser:
         return redirect("home")
+
     user = User.objects.get(id=user_id)
+
     if request.method == "POST":
         new_role = request.POST.get("role")
+
+        # Clear old roles
         user.groups.clear()
+
         if new_role == "repro_admin":
-            user.groups.add(Group.objects.get(name="repro_admin"))
+            group, _ = Group.objects.get_or_create(name="repro_admin")
+            user.groups.add(group)
             user.is_staff = True
+
         elif new_role == "store_admin":
-            user.groups.add(Group.objects.get(name="store_admin"))
+            group, _ = Group.objects.get_or_create(name="store_admin")
+            user.groups.add(group)
             user.is_staff = True
+
         else:
             user.is_staff = False
+
         user.save()
+
     return redirect("super_admin_dashboard")
 
 
@@ -455,16 +461,20 @@ def forgot_password(request):
 
 class CustomLoginView(LoginView):
     template_name = "login.html"
+
     def get_success_url(self):
         user = self.request.user
-        if user.groups.filter(name="repro_admin").exists():
-            return reverse("repro_admin_dashboard")
-        if user.groups.filter(name="store_admin").exists():
-            return reverse("store_admin_dashboard")
+
         if user.is_superuser:
             return reverse("super_admin_dashboard")
-        return reverse("home")
 
+        if user.groups.filter(name="store_admin").exists():
+            return reverse("store_admin_dashboard")
+
+        if user.groups.filter(name="repro_admin").exists():
+            return reverse("repro_admin_dashboard")
+
+        return reverse("home")
 
 def about(request):
     notifications = []
