@@ -2,7 +2,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><title>Repro Order History</title>
+    <meta charset="UTF-8">
+    <title>Repro Order History</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{% static 'printing/style.css' %}">
     <style>
@@ -16,9 +17,16 @@
         .order-date{font-size:0.73rem;color:#9ca3af;margin-top:2px;}
         .order-details{padding:0.75rem 1.25rem;display:flex;flex-wrap:wrap;gap:0.45rem;}
         .chip{background:#f3f4f6;border-radius:7px;padding:0.25rem 0.65rem;font-size:0.77rem;color:#374151;font-weight:500;}
+        .pay-row{display:flex;gap:0.6rem;flex-wrap:wrap;padding:0 1.25rem 0.9rem;}
+        .pay-chip{background:#eef2ff;color:#3730a3;border-radius:7px;padding:0.28rem 0.7rem;font-size:0.76rem;font-weight:700;}
+        .pay-chip.pending{background:#fff7ed;color:#9a3412;}
+        .pay-chip.paid{background:#dcfce7;color:#166534;}
+        .pay-chip.refunded{background:#fee2e2;color:#991b1b;}
+        .pay-now-btn{display:inline-block;margin:0 1.25rem 1rem;padding:0.65rem 0.95rem;background:linear-gradient(135deg,#3b82f6,#6366f1);color:white;text-decoration:none;border-radius:9px;font-size:0.82rem;font-weight:700;}
         .spill{padding:0.2rem 0.6rem;border-radius:12px;font-size:0.72rem;font-weight:700;}
-        .spill-pending{background:#e0e7ff;color:#3730a3;} .spill-printing{background:#fef3c7;color:#92400e;} .spill-done{background:#dcfce7;color:#166534;}
-        /* Bell */
+        .spill-pending{background:#e0e7ff;color:#3730a3;}
+        .spill-printing{background:#fef3c7;color:#92400e;}
+        .spill-done{background:#dcfce7;color:#166534;}
         .notif-wrap{position:relative;display:inline-flex;align-items:center;}
         .notif-btn{background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);color:white;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.15rem;transition:background 0.18s;position:relative;}
         .notif-btn:hover{background:rgba(255,255,255,0.30);}
@@ -46,24 +54,41 @@
         <a href="{% url 'repro' %}">← Back to Repro</a>
         <h1>🖨️ Repro Order History</h1>
         <div class="notif-wrap">
-            <button class="notif-btn" id="notif-btn">🔔{% if notif_count %}<span class="notif-dot">{{ notif_count }}</span>{% endif %}</button>
+            <button class="notif-btn" id="notif-btn">
+                🔔{% if notif_count %}<span class="notif-dot">{{ notif_count }}</span>{% endif %}
+            </button>
             <div class="notif-dropdown" id="notif-dropdown">
                 <div class="notif-dropdown-head">🔔 Updates <span style="opacity:0.8;font-size:0.75rem;">{{ notif_count }}</span></div>
                 <div class="notif-list">
-                    {% for n in notifications %}<a href="{{ n.url }}" class="notif-item"><span class="notif-item-icon">{{ n.icon }}</span><div class="notif-item-body"><div class="notif-item-msg">{{ n.message }}</div><div class="notif-item-sub">{{ n.order_number }}</div></div><span class="notif-status-dot dot-{{ n.status }}"></span></a>{% empty %}<div class="notif-empty">No orders yet</div>{% endfor %}
+                    {% for n in notifications %}
+                    <a href="{{ n.url }}" class="notif-item">
+                        <span class="notif-item-icon">{{ n.icon }}</span>
+                        <div class="notif-item-body">
+                            <div class="notif-item-msg">{{ n.message }}</div>
+                            <div class="notif-item-sub">{{ n.order_number }}</div>
+                        </div>
+                        <span class="notif-status-dot dot-{{ n.status }}"></span>
+                    </a>
+                    {% empty %}
+                    <div class="notif-empty">No orders yet</div>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
 </header>
 
-<!-- SIDEBAR -->
 <input type="checkbox" id="menu-toggle" class="menu-toggle-checkbox">
 <div class="hamburger-container">
-    <label for="menu-toggle" class="hamburger-btn"><span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span></label>
+    <label for="menu-toggle" class="hamburger-btn">
+        <span class="hamburger-line"></span><span class="hamburger-line"></span><span class="hamburger-line"></span>
+    </label>
 </div>
 <nav class="side-menu">
-    <div class="menu-header"><h3 class="menu-title">🎓 Campus Portal</h3><p style="color:rgba(255,255,255,0.85);font-size:0.82rem;margin-top:4px;">{{ user.username }}</p></div>
+    <div class="menu-header">
+        <h3 class="menu-title">🎓 Campus Portal</h3>
+        <p style="color:rgba(255,255,255,0.85);font-size:0.82rem;margin-top:4px;">{{ user.username }}</p>
+    </div>
     <div class="menu-nav">
         <a href="{% url 'home' %}">🏠 Home</a>
         <a href="{% url 'repro' %}">🖨️ Repro Services</a>
@@ -71,7 +96,8 @@
         <a href="{% url 'my_orders_combined' %}">📦 My Orders</a>
         <a href="{% url 'about' %}">ℹ️ About</a>
         <div style="padding:1rem 1.25rem;border-top:1px solid #f3f4f6;margin-top:0.5rem;">
-            <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
                 <button type="submit" style="width:100%;padding:0.65rem;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;">🚪 Logout</button>
             </form>
         </div>
@@ -85,18 +111,44 @@
         {% for o in orders %}
         <div class="order-card">
             <div class="order-head">
-                <div><div class="order-num">{{ o.order_number }}</div><div class="order-date">{{ o.created_at|date:"d M Y, h:i A" }}</div></div>
-                <span class="spill spill-{{ o.status }}">{% if o.status == 'pending' %}⏳ Pending{% elif o.status == 'printing' %}🖨️ Printing{% elif o.status == 'done' %}✅ Done{% endif %}</span>
+                <div>
+                    <div class="order-num">{{ o.order_number }}</div>
+                    <div class="order-date">{{ o.created_at|date:"d M Y, h:i A" }}</div>
+                </div>
+                <span class="spill spill-{{ o.status }}">
+                    {% if o.status == 'pending' %}⏳ Pending
+                    {% elif o.status == 'printing' %}🖨️ Printing
+                    {% elif o.status == 'done' %}✅ Done
+                    {% endif %}
+                </span>
             </div>
+
             <div class="order-details">
                 <span class="chip">📄 {{ o.copies }} cop{{ o.copies|pluralize:"y,ies" }}</span>
                 <span class="chip">🎨 {{ o.get_color_mode_display }}</span>
                 <span class="chip">📐 {{ o.paper_size }}</span>
                 <span class="chip">↔ {{ o.get_print_side_display }}</span>
                 <span class="chip">🗂 {{ o.get_binding_display }}</span>
-                {% if o.document %}<a href="{{ o.document.url }}" target="_blank" class="chip" style="color:#6366f1;text-decoration:none;">📎 View file</a>{% endif %}
+                {% if o.document %}
+                <a href="{{ o.document.url }}" target="_blank" class="chip" style="color:#6366f1;text-decoration:none;">📎 View file</a>
+                {% endif %}
             </div>
-            {% if o.instructions %}<div style="padding:0 1.25rem 0.75rem;font-size:0.8rem;color:#6b7280;">💬 {{ o.instructions }}</div>{% endif %}
+
+            <div class="pay-row">
+                <span class="pay-chip">💰 Total: ₹{{ o.total_amount }}</span>
+                <span class="pay-chip {% if o.payment_status == 'pending' %}pending{% elif o.payment_status == 'paid' %}paid{% elif o.payment_status == 'refunded' %}refunded{% endif %}">
+                    Payment: {{ o.payment_status|title }}
+                </span>
+                <span class="pay-chip">Method: {% if o.payment_method %}{{ o.payment_method }}{% else %}Not selected{% endif %}</span>
+            </div>
+
+            {% if o.instructions %}
+            <div style="padding:0 1.25rem 0.75rem;font-size:0.8rem;color:#6b7280;">💬 {{ o.instructions }}</div>
+            {% endif %}
+
+            {% if not user.is_superuser and o.user == user and o.payment_status == 'pending' %}
+                <a href="{% url 'repro_payment' o.id %}" class="pay-now-btn">💳 Complete Payment</a>
+            {% endif %}
         </div>
         {% endfor %}
     {% else %}
@@ -110,9 +162,22 @@
 </div>
 </main>
 
-<footer class="footer"><div class="container"><p>&copy; {% now "Y" %} College Utility Portal</p></div></footer>
+<footer class="footer">
+    <div class="container"><p>&copy; {% now "Y" %} College Utility Portal</p></div>
+</footer>
+
 <script>
-(function(){var nb=document.getElementById('notif-btn'),nd=document.getElementById('notif-dropdown');if(!nb||!nd)return;nb.addEventListener('click',function(e){e.stopPropagation();nd.classList.toggle('open');});document.addEventListener('click',function(e){if(!nd.contains(e.target)&&e.target!==nb)nd.classList.remove('open');});})();
+(function(){
+    var nb=document.getElementById('notif-btn'),nd=document.getElementById('notif-dropdown');
+    if(!nb||!nd)return;
+    nb.addEventListener('click',function(e){
+        e.stopPropagation();
+        nd.classList.toggle('open');
+    });
+    document.addEventListener('click',function(e){
+        if(!nd.contains(e.target)&&e.target!==nb) nd.classList.remove('open');
+    });
+})();
 </script>
 </body>
 </html>

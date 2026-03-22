@@ -2,7 +2,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8"><title>College Repro</title>
+    <meta charset="UTF-8">
+    <title>College Repro</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{% static 'printing/style.css' %}">
     <style>
@@ -16,14 +17,54 @@
         .preview-text-box{width:100%;height:200px;border:1px solid #ddd;border-radius:8px;padding:10px;font-family:monospace;font-size:0.8rem;overflow-y:auto;background:#f9fafb;white-space:pre-wrap;word-break:break-all;}
         .preview-generic{display:flex;align-items:center;justify-content:center;flex-direction:column;height:120px;border:1px dashed #d1d5db;border-radius:8px;color:#6b7280;font-size:0.9rem;gap:8px;background:#f9fafb;}
         .file-type-badge{display:inline-block;background:#e0e7ff;color:#3730a3;border-radius:4px;padding:2px 8px;font-size:0.75rem;font-weight:700;text-transform:uppercase;}
+
         #fileName{font-size:0.85rem;color:#374151;margin-top:6px;font-weight:500;}
         .confirm-row{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:0.9rem;}
-        .option-button{transition:transform 0.18s cubic-bezier(.34,1.56,.64,1),box-shadow 0.18s,background 0.18s,color 0.18s !important;}
-        .option-button:hover:not(.selected){transform:scale(1.045);box-shadow:0 4px 14px rgba(99,102,241,0.18);border-color:#6366f1 !important;color:#6366f1;cursor:pointer;}
-        .option-button.selected{transform:scale(1.02);}
+
+        .option-button{
+            transition:transform 0.18s cubic-bezier(.34,1.56,.64,1),box-shadow 0.18s,background 0.18s,color 0.18s !important;
+            position:relative;
+            padding-right:38px;
+        }
+        .option-button:hover:not(.selected){
+            transform:scale(1.045);
+            box-shadow:0 4px 14px rgba(99,102,241,0.18);
+            border-color:#6366f1 !important;
+            color:#6366f1;
+            cursor:pointer;
+        }
+        .option-button.selected{
+            transform:scale(1.02);
+            border:2px solid #4f46e5 !important;
+            background:linear-gradient(135deg,#eef2ff,#e0e7ff) !important;
+            color:#312e81 !important;
+            box-shadow:0 6px 18px rgba(79,70,229,0.16);
+        }
+        .option-check{
+            position:absolute;
+            top:8px;
+            right:10px;
+            width:22px;
+            height:22px;
+            border-radius:50%;
+            background:#4f46e5;
+            color:white;
+            font-size:0.8rem;
+            font-weight:800;
+            display:none;
+            align-items:center;
+            justify-content:center;
+            box-shadow:0 2px 8px rgba(79,70,229,0.28);
+        }
+        .option-button.selected .option-check{
+            display:flex;
+        }
+
         .form-select{transition:border-color 0.2s,box-shadow 0.2s;}
         .form-select:hover{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,0.1);}
-        /* Bell */
+        .price-preview{margin-top:16px;padding:14px 16px;border-radius:10px;background:#eef2ff;border:1px solid #c7d2fe;color:#312e81;font-weight:700;font-size:0.95rem;}
+        .price-line{display:flex;justify-content:space-between;align-items:center;}
+
         .notif-wrap{position:relative;display:inline-flex;align-items:center;}
         .notif-btn{background:rgba(255,255,255,0.18);border:1.5px solid rgba(255,255,255,0.45);color:white;width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:1.15rem;transition:background 0.18s;position:relative;}
         .notif-btn:hover{background:rgba(255,255,255,0.30);}
@@ -54,7 +95,7 @@
         <a href="{% url 'home' %}">← Home</a>
         <h1>🖨️ College Repro</h1>
         <div style="display:flex;align-items:center;gap:0.75rem;">
-            <a href="{% url 'orders' %}" style="color:white;text-decoration:none;font-weight:600;font-size:0.88rem;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);padding:0.38rem 0.85rem;border-radius:20px;transition:background 0.18s;" onmouseover="this.style.background='rgba(255,255,255,0.28)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">📥 Order History</a>
+            <a href="{% url 'orders' %}" style="color:white;text-decoration:none;font-weight:600;font-size:0.88rem;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);padding:0.38rem 0.85rem;border-radius:20px;">📥 Order History</a>
             <div class="notif-wrap">
                 <button class="notif-btn" id="notif-btn" aria-label="Notifications">
                     🔔{% if notif_count %}<span class="notif-dot">{{ notif_count }}</span>{% endif %}
@@ -65,10 +106,15 @@
                         {% for n in notifications %}
                         <a href="{{ n.url }}" class="notif-item">
                             <span class="notif-item-icon">{{ n.icon }}</span>
-                            <div class="notif-item-body"><div class="notif-item-msg">{{ n.message }}</div><div class="notif-item-sub">{{ n.order_number }}</div></div>
+                            <div class="notif-item-body">
+                                <div class="notif-item-msg">{{ n.message }}</div>
+                                <div class="notif-item-sub">{{ n.order_number }}</div>
+                            </div>
                             <span class="notif-status-dot dot-{{ n.status }}"></span>
                         </a>
-                        {% empty %}<div class="notif-empty">No orders yet</div>{% endfor %}
+                        {% empty %}
+                        <div class="notif-empty">No orders yet</div>
+                        {% endfor %}
                     </div>
                 </div>
             </div>
@@ -76,7 +122,6 @@
     </div>
 </header>
 
-<!-- SIDEBAR -->
 <input type="checkbox" id="menu-toggle" class="menu-toggle-checkbox">
 <div class="hamburger-container">
     <label for="menu-toggle" class="hamburger-btn" aria-label="Open menu">
@@ -95,7 +140,8 @@
         <a href="{% url 'my_orders_combined' %}">📦 My Orders</a>
         <a href="{% url 'about' %}">ℹ️ About</a>
         <div style="padding:1rem 1.25rem;border-top:1px solid #f3f4f6;margin-top:0.5rem;">
-            <form method="post" action="{% url 'logout' %}">{% csrf_token %}
+            <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
                 <button type="submit" style="width:100%;padding:0.65rem;background:linear-gradient(135deg,#ef4444,#dc2626);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.9rem;">🚪 Logout</button>
             </form>
         </div>
@@ -110,8 +156,6 @@
     </div>
 </div>
 
-
-
 <main class="page-content">
     {% if messages %}
     <div style="margin-bottom:1rem;">
@@ -125,7 +169,6 @@
         <form method="POST" enctype="multipart/form-data" id="repro-form">
             {% csrf_token %}
             <div class="repro-grid">
-                <!-- Upload Card -->
                 <div class="repro-card">
                     <div class="repro-card-header"><span class="repro-icon-header">📤</span><h3 class="repro-card-title">Upload Document</h3></div>
                     <div class="upload-area">
@@ -149,46 +192,85 @@
                         <label class="confirm-row"><input type="checkbox" id="confirmCheck" required> I confirm this is the correct file</label>
                     </div>
                 </div>
-                <!-- Instructions Card -->
+
                 <div class="repro-card">
                     <div class="repro-card-header"><span class="repro-icon-header">🖨️</span><h3 class="repro-card-title">Print Instructions</h3></div>
                     <div class="print-form">
-                        <div class="form-group"><label class="form-label">Number of Copies</label><input type="number" name="copies" min="1" value="1" class="form-input" required></div>
+                        <div class="form-group">
+                            <label class="form-label">Number of Copies</label>
+                            <input type="number" name="copies" id="copies" min="1" value="1" class="form-input" required>
+                        </div>
+
                         <div class="form-group">
                             <label class="form-label">Color Mode</label>
                             <div class="option-grid" id="color-options">
-                                <div class="option-button selected" data-value="bw"><span>Black &amp; White</span><span class="option-price">(₹2/page)</span></div>
-                                <div class="option-button" data-value="color"><span>Color</span><span class="option-price">(₹10/page)</span></div>
+                                <div class="option-button selected" data-value="bw">
+                                    <span>Black &amp; White</span>
+                                    <span class="option-price">(₹2/copy)</span>
+                                    <span class="option-check">✓</span>
+                                </div>
+                                <div class="option-button" data-value="color">
+                                    <span>Color</span>
+                                    <span class="option-price">(₹10/copy)</span>
+                                    <span class="option-check">✓</span>
+                                </div>
                             </div>
                             <input type="hidden" name="color_mode" id="color_mode" value="bw">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label">Paper Size</label>
                             <div class="option-grid" id="paper-options">
-                                <div class="option-button selected" data-value="A4">A4</div>
-                                <div class="option-button" data-value="A3">A3</div>
+                                <div class="option-button selected" data-value="A4">
+                                    A4
+                                    <span class="option-check">✓</span>
+                                </div>
+                                <div class="option-button" data-value="A3">
+                                    A3 (+₹3)
+                                    <span class="option-check">✓</span>
+                                </div>
                             </div>
                             <input type="hidden" name="paper_size" id="paper_size" value="A4">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label">Print Side</label>
                             <div class="option-grid" id="side-options">
-                                <div class="option-button selected" data-value="single">Single Sided</div>
-                                <div class="option-button" data-value="double">Double Sided</div>
+                                <div class="option-button selected" data-value="single">
+                                    Single Sided
+                                    <span class="option-check">✓</span>
+                                </div>
+                                <div class="option-button" data-value="double">
+                                    Double Sided (+₹1)
+                                    <span class="option-check">✓</span>
+                                </div>
                             </div>
                             <input type="hidden" name="print_side" id="print_side" value="single">
                         </div>
+
                         <div class="form-group">
                             <label class="form-label">Binding (Optional)</label>
-                            <select name="binding" class="form-select">
+                            <select name="binding" id="binding" class="form-select">
                                 <option value="none">No Binding</option>
                                 <option value="spiral">Spiral Binding (+₹30)</option>
                                 <option value="thermal">Thermal Binding (+₹50)</option>
                                 <option value="hardcover">Hardcover Binding (+₹100)</option>
                             </select>
                         </div>
-                        <div class="form-group"><label class="form-label">Special Instructions (Optional)</label><textarea name="instructions" class="form-textarea" rows="3" placeholder="Any special requirements..."></textarea></div>
-                        <button type="submit" class="submit-button" id="submitBtn" disabled>Submit Order</button>
+
+                        <div class="price-preview">
+                            <div class="price-line">
+                                <span>Estimated Total</span>
+                                <span id="estimated-total">₹2.00</span>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Special Instructions (Optional)</label>
+                            <textarea name="instructions" class="form-textarea" rows="3" placeholder="Any special requirements..."></textarea>
+                        </div>
+
+                        <button type="submit" class="submit-button" id="submitBtn" disabled>Proceed to Payment</button>
                     </div>
                 </div>
             </div>
@@ -198,25 +280,103 @@
 
 <script>
 (function(){
-    var fi=document.getElementById("file-upload"),pc=document.getElementById("previewContainer"),fne=document.getElementById("fileName"),cc=document.getElementById("confirmCheck"),sb=document.getElementById("submitBtn"),pp=document.getElementById("pdfPreview"),ip=document.getElementById("imgPreview"),tp=document.getElementById("textPreview"),gp=document.getElementById("genericPreview"),gi=document.getElementById("genericIcon"),gm=document.getElementById("genericMsg"),ge=document.getElementById("genericExt");
+    var fi=document.getElementById("file-upload"),
+        pc=document.getElementById("previewContainer"),
+        fne=document.getElementById("fileName"),
+        cc=document.getElementById("confirmCheck"),
+        sb=document.getElementById("submitBtn"),
+        pp=document.getElementById("pdfPreview"),
+        ip=document.getElementById("imgPreview"),
+        tp=document.getElementById("textPreview"),
+        gp=document.getElementById("genericPreview"),
+        gi=document.getElementById("genericIcon"),
+        gm=document.getElementById("genericMsg"),
+        ge=document.getElementById("genericExt");
+
     var ICONS={".doc":"📝",".docx":"📝",".odt":"📝",".rtf":"📝",".ppt":"📊",".pptx":"📊",".odp":"📊",".xls":"📈",".xlsx":"📈",".ods":"📈",".csv":"📈",".txt":"📃"};
+
     function hideAll(){[pp,ip,tp,gp].forEach(function(e){e.style.display="none";});}
+
     fi&&fi.addEventListener("change",function(){
-        var file=this.files[0];if(!file)return;
-        var ext=file.name.substring(file.name.lastIndexOf(".")).toLowerCase(),blobUrl=URL.createObjectURL(file);
-        hideAll();cc.checked=false;sb.disabled=true;pc.style.display="block";
+        var file=this.files[0];
+        if(!file)return;
+        var ext=file.name.substring(file.name.lastIndexOf(".")).toLowerCase(),
+            blobUrl=URL.createObjectURL(file);
+        hideAll();
+        cc.checked=false;
+        sb.disabled=true;
+        pc.style.display="block";
         fne.textContent="📎 "+file.name+" ("+(file.size/1024).toFixed(1)+" KB)";
         if(ext===".pdf"){pp.src=blobUrl;pp.style.display="block";}
         else if([".png",".jpg",".jpeg",".gif",".webp",".bmp"].includes(ext)){ip.src=blobUrl;ip.style.display="block";}
-        else if([".txt",".csv",".rtf"].includes(ext)){var r=new FileReader();r.onload=function(e){tp.textContent=e.target.result.substring(0,3000)+(e.target.result.length>3000?"\n…(truncated)":"");tp.style.display="block";};r.readAsText(file);}
-        else{gi.textContent=ICONS[ext]||"📄";ge.textContent=ext.replace(".","");gm.textContent="Preview not available for "+ext.toUpperCase()+" — file selected correctly.";gp.style.display="flex";}
+        else if([".txt",".csv",".rtf"].includes(ext)){
+            var r=new FileReader();
+            r.onload=function(e){
+                tp.textContent=e.target.result.substring(0,3000)+(e.target.result.length>3000?"\n…(truncated)":"");
+                tp.style.display="block";
+            };
+            r.readAsText(file);
+        } else {
+            gi.textContent=ICONS[ext]||"📄";
+            ge.textContent=ext.replace(".","");
+            gm.textContent="Preview not available for "+ext.toUpperCase()+" — file selected correctly.";
+            gp.style.display="flex";
+        }
     });
+
     cc&&cc.addEventListener("change",function(){sb.disabled=!this.checked;});
-    function bindOptions(cid,hid){var c=document.getElementById(cid),h=document.getElementById(hid);if(!c||!h)return;c.querySelectorAll(".option-button").forEach(function(btn){btn.addEventListener("click",function(){c.querySelectorAll(".option-button").forEach(function(b){b.classList.remove("selected");});btn.classList.add("selected");h.value=btn.dataset.value;});});}
-    bindOptions("color-options","color_mode");bindOptions("paper-options","paper_size");bindOptions("side-options","print_side");
-    // Bell
+
+    function bindOptions(cid,hid,after){
+        var c=document.getElementById(cid),h=document.getElementById(hid);
+        if(!c||!h)return;
+        c.querySelectorAll(".option-button").forEach(function(btn){
+            btn.addEventListener("click",function(){
+                c.querySelectorAll(".option-button").forEach(function(b){b.classList.remove("selected");});
+                btn.classList.add("selected");
+                h.value=btn.dataset.value;
+                if(after) after();
+            });
+        });
+    }
+
+    function calcTotal(){
+        var copies=parseInt(document.getElementById("copies").value||"1",10);
+        var color=document.getElementById("color_mode").value;
+        var paper=document.getElementById("paper_size").value;
+        var side=document.getElementById("print_side").value;
+        var binding=document.getElementById("binding").value;
+
+        var perCopy=(color==="color")?10:2;
+        if(paper==="A3") perCopy+=3;
+        if(side==="double") perCopy+=1;
+
+        var bindingCharge=0;
+        if(binding==="spiral") bindingCharge=30;
+        else if(binding==="thermal") bindingCharge=50;
+        else if(binding==="hardcover") bindingCharge=100;
+
+        var total=(perCopy*copies)+bindingCharge;
+        document.getElementById("estimated-total").textContent="₹"+total.toFixed(2);
+    }
+
+    bindOptions("color-options","color_mode",calcTotal);
+    bindOptions("paper-options","paper_size",calcTotal);
+    bindOptions("side-options","print_side",calcTotal);
+
+    document.getElementById("copies").addEventListener("input",calcTotal);
+    document.getElementById("binding").addEventListener("change",calcTotal);
+    calcTotal();
+
     var nb=document.getElementById('notif-btn'),nd=document.getElementById('notif-dropdown');
-    if(nb&&nd){nb.addEventListener('click',function(e){e.stopPropagation();nd.classList.toggle('open');});document.addEventListener('click',function(e){if(!nd.contains(e.target)&&e.target!==nb)nd.classList.remove('open');});}
+    if(nb&&nd){
+        nb.addEventListener('click',function(e){
+            e.stopPropagation();
+            nd.classList.toggle('open');
+        });
+        document.addEventListener('click',function(e){
+            if(!nd.contains(e.target)&&e.target!==nb) nd.classList.remove('open');
+        });
+    }
 })();
 </script>
 </body>

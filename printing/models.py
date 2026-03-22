@@ -18,8 +18,6 @@ class NotificationSeen(models.Model):
 
 
 class PrintOrder(models.Model):
-
-    # 🔹 Unique order number (professional ID)
     order_number = models.CharField(max_length=30, unique=True, blank=True)
 
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -61,9 +59,17 @@ class PrintOrder(models.Model):
     ]
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default="pending")
 
+    PAYMENT_CHOICES = [
+        ("pending", "Pending"),
+        ("paid", "Paid"),
+        ("refunded", "Refunded"),
+    ]
+    payment_status = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default="pending")
+    payment_method = models.CharField(max_length=50, blank=True, default="")
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
-    # 🔹 Auto-generate order number
     def save(self, *args, **kwargs):
         if not self.order_number:
             timestamp = timezone.now().strftime("%Y%m%d%H%M%S")
@@ -72,4 +78,4 @@ class PrintOrder(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.order_number}"
+        return self.order_number
